@@ -76,7 +76,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     keyboard = [
         [
-            InlineKeyboardButton("📋 Tanlov shartlari bilan tanishish", url="https://api.vatandoshlarfondi.uz/storage/maple-users/October2025/KAmvYOOgUrXVWpsZSWGc.docx")
+            InlineKeyboardButton("📋 Tanlov shartlari bilan tanishish", url="https://api.vatandoshlarfondi.uz/storage/maple-users/October2025/CD44Dg7oUTAwAhRH32uN.pdf")
         ],
         [
             InlineKeyboardButton("✅ Ro'yxatdan o'tishni boshlash", callback_data="begin_reg")
