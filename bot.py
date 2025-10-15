@@ -83,8 +83,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ]
     ]
 
-    webapp_url = os.getenv('WEBAPP_URL')
-    if webapp_url and webapp_url.startswith('https://'):
+    webapp_url = os.getenv('WEBAPP_URL', 'https://youtube.com')
+    if webapp_url.startswith('https://'):
         keyboard.append([
             InlineKeyboardButton("🧩 Mini App ni ochish", web_app=WebAppInfo(url=webapp_url))
         ])
