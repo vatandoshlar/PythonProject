@@ -5,16 +5,16 @@ import os
 import json
 import re
 from datetime import datetime
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler, ContextTypes, filters, \
     ConversationHandler
 import openpyxl
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 
 # Bot konfiguratsiyasi
-BOT_TOKEN = os.getenv('BOT_TOKEN', '7729290828:AAFJl5pxtdnyvA6czTtcDQ3iexVq_Fd7_o0')
+BOT_TOKEN = os.getenv('BOT_TOKEN', '8306737061:AAHXs3HSPQC3BrXEQfdygirhAlNkNVZy1oc')
 ADMIN_CHAT_ID = os.getenv('ADMIN_CHAT_ID', '7605860772')
-GROUP_ID = os.getenv('GROUP_ID', '-1111')
+GROUP_ID = os.getenv('GROUP_ID', '-1002930763309')
 
 # Conversation states
 (START_MENU, FULLNAME, COUNTRY, CITY, BIRTHDATE, PHONE, WORKPLACE,
@@ -80,6 +80,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ],
         [
             InlineKeyboardButton("✅ Ro'yxatdan o'tishni boshlash", callback_data="begin_reg")
+        ],
+        [
+            InlineKeyboardButton("🧩 Mini App ni ochish", web_app=WebAppInfo(url=os.getenv('WEBAPP_URL', 'http://localhost:8080/')))
         ]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)

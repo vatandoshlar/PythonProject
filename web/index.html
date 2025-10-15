@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tanlov Mini App</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial, "Apple Color Emoji", "Segoe UI Emoji"; padding: 16px; }
+    .card { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+    .row { display: grid; grid-template-columns: 1fr; gap: 12px; }
+    label { font-weight: 600; font-size: 14px; }
+    input, select, textarea { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; font-size: 14px; }
+    button { padding: 12px 16px; border: none; border-radius: 10px; background: #2a85ff; color: #fff; font-weight: 700; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Ro'yxatdan o'tish</h2>
+    <div class="row">
+      <div>
+        <label>F.I.Sh</label>
+        <input id="fullname" placeholder="Ibragimov Samandar Iskandar o'g'li" />
+      </div>
+      <div>
+        <label>Davlat</label>
+        <input id="country" />
+      </div>
+      <div>
+        <label>Shahar/Tuman</label>
+        <input id="city" />
+      </div>
+      <div>
+        <label>Tug'ilgan sana (dd.mm.yyyy)</label>
+        <input id="birthdate" placeholder="04.06.1994" />
+      </div>
+      <div>
+        <label>Telefon</label>
+        <input id="phone" placeholder="har qanday format" />
+      </div>
+      <div>
+        <label>Ish yoki o'qish joyi</label>
+        <input id="workplace" />
+      </div>
+      <div>
+        <label>Mutaxassislik</label>
+        <input id="specialty" />
+      </div>
+      <div>
+        <label>Ma'lumot</label>
+        <select id="education">
+          <option>O'rta ta'lim</option>
+          <option>O'rta maxsus ta'lim</option>
+          <option>Oliy ta'lim (Bakalavr)</option>
+          <option>Oliy ta'lim (Magistr)</option>
+          <option>Oliy ta'lim (Doktorantura)</option>
+          <option>Boshqa</option>
+        </select>
+      </div>
+      <div>
+        <label>Nominatsiya</label>
+        <select id="nomination">
+          <option>Eng tashabuskor o'zbek tili ustozi</option>
+          <option>Eng yaxshi insho</option>
+          <option>Eng yaxshi videorolik</option>
+        </select>
+      </div>
+      <div>
+        <label>Ijodiy ish (video/audio/pdf/...)</label>
+        <input id="file" type="file" />
+      </div>
+      <div>
+        <button id="submit">Yuborish</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const tg = window.Telegram?.WebApp;
+    if (tg) {
+      tg.ready();
+      tg.expand();
+      tg.MainButton.hide();
+    }
+
+    document.getElementById('submit').addEventListener('click', async () => {
+      const fd = new FormData();
+      fd.append('fullname', document.getElementById('fullname').value);
+      fd.append('country', document.getElementById('country').value);
+      fd.append('city', document.getElementById('city').value);
+      fd.append('birthdate', document.getElementById('birthdate').value);
+      fd.append('phone', document.getElementById('phone').value);
+      fd.append('workplace', document.getElementById('workplace').value);
+      fd.append('specialty', document.getElementById('specialty').value);
+      fd.append('education', document.getElementById('education').value);
+      fd.append('nomination', document.getElementById('nomination').value);
+      const fileInput = document.getElementById('file');
+      if (fileInput.files[0]) fd.append('file', fileInput.files[0]);
+
+      const headers = {};
+      if (tg?.initDataUnsafe?.user) {
+        const u = tg.initDataUnsafe.user;
+        headers['X-Telegram-Id'] = u.id;
+        headers['X-Telegram-Username'] = u.username || '';
+        headers['X-Telegram-First'] = u.first_name || '';
+        headers['X-Telegram-Last'] = u.last_name || '';
+        headers['X-Telegram-Lang'] = tg.initDataUnsafe?.language || '';
+      }
+
+      try {
+        const res = await fetch('/api/register', { method: 'POST', body: fd, headers });
+        const data = await res.json();
+        if (data.ok) {
+          alert('Yuborildi! Rahmat.');
+          tg?.close();
+        } else {
+          alert('Xatolik: ' + (data.error || 'nomaʼlum'));
+        }
+      } catch (e) {
+        alert('Xatolik: ' + e.message);
+      }
+    });
+  </script>
+</body>
+</html>
+
+
