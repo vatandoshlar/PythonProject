@@ -80,11 +80,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ],
         [
             InlineKeyboardButton("✅ Ro'yxatdan o'tishni boshlash", callback_data="begin_reg")
-        ],
-        [
-            InlineKeyboardButton("🧩 Mini App ni ochish", web_app=WebAppInfo(url=os.getenv('WEBAPP_URL', 'http://localhost:8080/')))
         ]
     ]
+
+    webapp_url = os.getenv('WEBAPP_URL')
+    if webapp_url and webapp_url.startswith('https://'):
+        keyboard.append([
+            InlineKeyboardButton("🧩 Mini App ni ochish", web_app=WebAppInfo(url=webapp_url))
+        ])
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     if update.message:
