@@ -14,7 +14,7 @@ from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 # Bot konfiguratsiyasi
 BOT_TOKEN = os.getenv('BOT_TOKEN', '7729290828:AAFJl5pxtdnyvA6czTtcDQ3iexVq_Fd7_o0')
 ADMIN_CHAT_ID = os.getenv('ADMIN_CHAT_ID', '7605860772')
-GROUP_ID = os.getenv('GROUP_ID', '-1002930763309')
+GROUP_ID = os.getenv('GROUP_ID', '-1111')
 
 # Conversation states
 (START_MENU, FULLNAME, COUNTRY, CITY, BIRTHDATE, PHONE, WORKPLACE,
@@ -76,7 +76,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     keyboard = [
         [
-            InlineKeyboardButton("📋 Tanlov shartlari bilan tanishish", url="https://api.vatandoshlarfondi.uz/storage/maple-users/October2025/KAmvYOOgUrXVWpsZSWGc.docx")
+            InlineKeyboardButton("📋 Tanlov shartlari bilan tanishish", url="https://api.vatandoshlarfondi.uz/storage/maple-users/October2025/CD44Dg7oUTAwAhRH32uN.pdf")
         ],
         [
             InlineKeyboardButton("✅ Ro'yxatdan o'tishni boshlash", callback_data="begin_reg")
