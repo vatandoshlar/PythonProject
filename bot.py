@@ -109,22 +109,19 @@ async def begin_registration_callback(update: Update, context: ContextTypes.DEFA
     return FULLNAME
 
 
-async def begin_registration_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Triggered when user presses "✅ Qatnashish" or explicitly opts in
-    if update.message:
-        await update.message.reply_text("✅", reply_markup=ReplyKeyboardRemove())
-        await update.message.reply_text(
-            "Ro'yxatdan o'tish uchun quyidagi ma'lumotlarni to'ldiring.\n\n"
-            "📝 Iltimos, ismingiz, familiyangiz va sharifingizni kiriting:\n"
-            "(Masalan: Ibragimov Samandar Iskandar o'g'li)"
-        )
-    else:
-        await update.effective_chat.send_message("✅", reply_markup=ReplyKeyboardRemove())
-        await update.effective_chat.send_message(
-            "Ro'yxatdan o'tish uchun quyidagi ma'lumotlarni to'ldiring.\n\n"
-            "📝 Iltimos, ismingiz, familiyangiz va sharifingizni kiriting:\n"
-            "(Masalan: Ibragimov Samandar Iskandar o'g'li)"
-        )
+async def handle_broadcast_qatnashish(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """User pressed reply keyboard after broadcast. Show Start menu; keep keyboard for now."""
+    return await start(update, context)
+
+
+async def handle_startmenu_qatnashish(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """At Start menu, pressing Qatnashish begins registration and removes keyboard when asking name."""
+    await update.message.reply_text("✅", reply_markup=ReplyKeyboardRemove())
+    await update.message.reply_text(
+        "Ro'yxatdan o'tish uchun quyidagi ma'lumotlarni to'ldiring.\n\n"
+        "📝 Iltimos, ismingiz, familiyangiz va sharifingizni kiriting:\n"
+        "(Masalan: Ibragimov Samandar Iskandar o'g'li)"
+    )
     return FULLNAME
 
 
@@ -595,6 +592,7 @@ async def broadcast_previous_users(application: Application):
         )
         reply_kb = ReplyKeyboardMarkup([[KeyboardButton("✅ Qatnashish")]], resize_keyboard=True)
 
+        success = 0
         for user in registered_users:
             user_id = user.get('user_id')
             if not user_id or user_id in seen:
@@ -602,8 +600,10 @@ async def broadcast_previous_users(application: Application):
             seen.add(user_id)
             try:
                 await application.bot.send_message(chat_id=user_id, text=text, reply_markup=reply_kb, parse_mode='HTML')
+                success += 1
             except Exception as send_err:
                 print(f"Broadcast failed for {user_id}: {send_err}")
+        return success
     except Exception as e:
         print(f"Broadcast error: {e}")
 
@@ -615,8 +615,8 @@ async def broadcast_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ Sizda ruxsat yo'q!")
         return
     await update.message.reply_text("⏳ Broadcast boshlanmoqda...")
-    await broadcast_previous_users(context.application)
-    await update.message.reply_text("✅ Broadcast yuborildi (muvaffaqiyatsizlar logda).")
+    count = await broadcast_previous_users(context.application)
+    await update.message.reply_text(f"✅ Broadcast yuborildi. Jami: {count} ta foydalanuvchi")
 
 
 async def approve_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -810,13 +810,15 @@ def main():
     conv_handler = ConversationHandler(
         entry_points=[
             CommandHandler('start', start),
-            MessageHandler(filters.Regex('^✅?\s*Qatnashish$'), begin_registration_text),
+            # After broadcast: pressing reply keyboard should show Start message
+            MessageHandler(filters.Regex('^✅?\s*Qatnashish$'), handle_broadcast_qatnashish),
             MessageHandler(filters.ALL & ~filters.COMMAND, pre_registration_catch_all),
         ],
         states={
             START_MENU: [
                 CommandHandler('start', start),
-                MessageHandler(filters.Regex('^✅?\s*Qatnashish$'), begin_registration_text),
+                # At Start menu: pressing button should begin registration and remove keyboard
+                MessageHandler(filters.Regex('^✅?\s*Qatnashish$'), handle_startmenu_qatnashish),
                 MessageHandler(filters.ALL & ~filters.COMMAND, pre_registration_catch_all),
                 CallbackQueryHandler(begin_registration_callback, pattern='^begin_reg$')
             ],
