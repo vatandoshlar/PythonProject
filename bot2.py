@@ -327,8 +327,8 @@ async def birthdate(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.document or update.message.photo or update.message.video or update.message.audio or update.message.voice or update.message.sticker:
         await update.message.reply_text(
             "❌ Iltimos, faqat <b>matn</b> kiriting!\n\n"
-            "📅 Tug'ilgan sanangizni matn ko'rinishida yuboring (dd.mm.yyyy formatida).\n"
-            "(Masalan: 04.06.1994)",
+            "📅 Tug'ilgan sanangizni matn ko'rinishida yuboring.\n"
+            "(Masalan: 04.06.1994 yoki 1994-yil 4-iyun)",
             parse_mode='HTML'
         )
         return BIRTHDATE
@@ -336,31 +336,24 @@ async def birthdate(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message.text:
         await update.message.reply_text(
             "❌ Iltimos, <b>matn</b> yuboring!\n\n"
-            "📅 Tug'ilgan sanangizni kiriting (dd.mm.yyyy formatida).",
+            "📅 Tug'ilgan sanangizni kiriting.",
             parse_mode='HTML'
         )
         return BIRTHDATE
 
     text = update.message.text
 
-    try:
-        datetime.strptime(text, '%d.%m.%Y')
-        context.user_data['birthdate'] = text
-        
-        # Save partial data
-        user = update.effective_user
-        save_partial_user_data(user.id, context.user_data, 'birthdate')
-        
-        await update.message.reply_text(
-            "📱 Telefon raqamingizni kiriting."
-        )
-        return PHONE
-    except ValueError:
-        await update.message.reply_text(
-            "❌ Noto'g'ri format! Iltimos, dd.mm.yyyy formatida kiriting.\n"
-            "(Masalan: 04.06.1994)"
-        )
-        return BIRTHDATE
+    # Accept any text format for birthdate
+    context.user_data['birthdate'] = text
+    
+    # Save partial data
+    user = update.effective_user
+    save_partial_user_data(user.id, context.user_data, 'birthdate')
+    
+    await update.message.reply_text(
+        "📱 Telefon raqamingizni kiriting."
+    )
+    return PHONE
 
 
 async def phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
