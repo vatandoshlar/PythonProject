@@ -161,6 +161,90 @@ async def send_reminder_to_incomplete_users():
         print(f"Error in send_reminder_to_incomplete_users: {e}")
 
 
+async def handle_forwarded_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle forwarded messages from admin to save as new user"""
+    user_id = str(update.effective_user.id)
+    
+    # Check if message is from admin
+    if user_id != ADMIN_CHAT_ID:
+        return
+    
+    # Check if message is forwarded
+    if not update.message.forward_from or not update.message.forward_from_chat:
+        return
+    
+    try:
+        # Reload data to get latest users
+        load_data()
+        
+        # Extract forwarded user info
+        forwarded_user = update.message.forward_from
+        forwarded_chat = update.message.forward_from_chat
+        
+        # Create new user entry from forwarded data
+        new_user = {
+            'user_id': forwarded_user.id,
+            'username': forwarded_user.username or "Username yo'q",
+            'first_name': forwarded_user.first_name or "",
+            'last_name': forwarded_user.last_name or "",
+            'language_code': forwarded_user.language_code or "",
+            'registration_date': datetime.now().strftime('%d.%m.%Y %H:%M:%S'),
+            'registration_status': 'complete',
+            'completion_date': datetime.now().strftime('%d.%m.%Y %H:%M:%S'),
+            'fullname': f"{forwarded_user.first_name or ''} {forwarded_user.last_name or ''}".strip(),
+            'country': 'Noma\'lum',
+            'city': 'Noma\'lum',
+            'birthdate': 'Noma\'lum',
+            'phone': 'Noma\'lum',
+            'workplace': 'Noma\'lum',
+            'specialty': 'Noma\'lum',
+            'education': 'Noma\'lum',
+            'nomination': 'Noma\'lum',
+            'file': {
+                'file_id': 'Noma\'lum',
+                'file_type': 'Noma\'lum',
+                'file_name': 'Noma\'lum'
+            },
+            'recovered_from_forward': True,
+            'original_forward_date': datetime.now().strftime('%d.%m.%Y %H:%M:%S')
+        }
+        
+        # Check if user already exists
+        existing_user = None
+        for i, user in enumerate(registered_users):
+            if user.get('user_id') == forwarded_user.id:
+                existing_user = i
+                break
+        
+        if existing_user is not None:
+            # Update existing user
+            registered_users[existing_user] = new_user
+            action = "yangilandi"
+        else:
+            # Add new user
+            registered_users.append(new_user)
+            action = "qo'shildi"
+        
+        save_data()
+        
+        # Send confirmation to admin
+        await update.message.reply_text(
+            f"✅ <b>Foydalanuvchi ma'lumotlari {action}!</b>\n\n"
+            f"👤 Foydalanuvchi: {new_user['fullname']}\n"
+            f"🆔 ID: {new_user['user_id']}\n"
+            f"📅 Sana: {new_user['registration_date']}\n"
+            f"🔄 Holat: Qayta tiklandi\n\n"
+            f"📊 Jami foydalanuvchilar: {len(registered_users)}",
+            parse_mode='HTML'
+        )
+        
+        print(f"User {new_user['user_id']} {action} from forwarded message")
+        
+    except Exception as e:
+        await update.message.reply_text(f"❌ Xato: {e}")
+        print(f"Error handling forwarded message: {e}")
+
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
 
@@ -1377,6 +1461,8 @@ def main():
     application.add_handler(CommandHandler('userid', userid_command))
     # Catch any command that looks like a Telegram ID (e.g., /123456789)
     application.add_handler(MessageHandler(filters.Regex(r'^/\d+$') & filters.ChatType.PRIVATE, userid_command))
+    # Handle forwarded messages from admin to recover user data
+    application.add_handler(MessageHandler(filters.FORWARDED & filters.ChatType.PRIVATE, handle_forwarded_message))
     application.add_handler(CallbackQueryHandler(approve_callback, pattern='^approve_'))
     application.add_handler(CallbackQueryHandler(reject_callback, pattern='^reject_'))
 
