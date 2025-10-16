@@ -12,7 +12,7 @@ import openpyxl
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 
 # Bot konfiguratsiyasi
-BOT_TOKEN = os.getenv('BOT_TOKEN', '7729290828:AAFJl5pxtdnyvA6czTtcDQ3iexVq_Fd7_o0')
+BOT_TOKEN = os.getenv('BOT_TOKEN', '8306737061:AAHXs3HSPQC3BrXEQfdygirhAlNkNVZy1oc')
 ADMIN_CHAT_ID = os.getenv('ADMIN_CHAT_ID', '7605860772')
 GROUP_ID = os.getenv('GROUP_ID', '-1002930763309')
 
@@ -848,7 +848,8 @@ async def export_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             
             # Determine status and date
             status = user.get('registration_status', 'complete')
-            status_text = "✅ To'liq" if status == 'complete' else f"⏳ {user.get('current_step', 'Noma\'lum')}"
+            unknown_text = 'Noma\'lum'
+            status_text = "✅ To'liq" if status == 'complete' else f"⏳ {user.get('current_step', unknown_text)}"
             date_field = user.get('completion_date', user.get('last_updated', user.get('registration_date', '')))
 
             data = [

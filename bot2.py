@@ -848,7 +848,8 @@ async def export_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             
             # Determine status and date
             status = user.get('registration_status', 'complete')
-            status_text = "✅ To'liq" if status == 'complete' else f"⏳ {user.get('current_step', 'Noma\'lum')}"
+            unknown_text = 'Noma\'lum'
+            status_text = "✅ To'liq" if status == 'complete' else f"⏳ {user.get('current_step', unknown_text)}"
             date_field = user.get('completion_date', user.get('last_updated', user.get('registration_date', '')))
 
             data = [
