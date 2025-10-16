@@ -50,18 +50,18 @@ def load_data():
         if os.path.exists(DATA_FILE):
             with open(DATA_FILE, 'r', encoding='utf-8') as f:
                 registered_users = json.load(f)
-        print("Ma'lumotlar yuklandi")
+        print(f"📂 Ma'lumotlar yuklandi: {len(registered_users)} foydalanuvchi")
     except Exception as e:
-        print(f"Xato: {e}")
+        print(f"❌ Xato: {e}")
 
 
 def save_data():
     try:
         with open(DATA_FILE, 'w', encoding='utf-8') as f:
             json.dump(registered_users, f, ensure_ascii=False, indent=2)
-        print("Ma'lumotlar saqlandi")
+        print(f"💾 Ma'lumotlar saqlandi: {len(registered_users)} foydalanuvchi")
     except Exception as e:
-        print(f"Xato: {e}")
+        print(f"❌ Saqlash xatosi: {e}")
 
 
 def save_partial_user_data(user_id, context_data, step_name):
@@ -163,21 +163,25 @@ async def send_reminder_to_incomplete_users():
 
 async def handle_forwarded_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle forwarded messages from admin to save as new user"""
+    print(f"🔍 FORWARDED HANDLER CALLED!")
     user_id = str(update.effective_user.id)
     
-    print(f"DEBUG: Message received from user {user_id}")
-    print(f"DEBUG: Admin ID: {ADMIN_CHAT_ID}")
+    print(f"🔍 Message received from user {user_id}")
+    print(f"🔍 Admin ID: {ADMIN_CHAT_ID}")
+    print(f"🔍 Message type: {type(update.message)}")
+    print(f"🔍 Message text: {update.message.text or 'No text'}")
+    print(f"🔍 Forwarded: {update.message.forward_from is not None}")
     
     # Check if message is from admin
     if user_id != ADMIN_CHAT_ID:
-        print(f"DEBUG: Not admin, ignoring message")
+        print(f"🔍 Not admin, ignoring message")
         return
     
-    print(f"DEBUG: Message from admin, checking if forwarded...")
+    print(f"🔍 Message from admin, checking if forwarded...")
     
     # Check if message is forwarded
     if not update.message.forward_from:
-        print(f"DEBUG: Not a forwarded message")
+        print(f"🔍 Not a forwarded message - sending debug info")
         # Send debug info for non-forwarded messages
         await update.message.reply_text(
             f"🔍 <b>Debug Info:</b>\n\n"
@@ -189,9 +193,11 @@ async def handle_forwarded_message(update: Update, context: ContextTypes.DEFAULT
         )
         return
     
-    print(f"DEBUG: Forwarded message detected from user {user_id}")
-    print(f"DEBUG: Forwarded from: {update.message.forward_from.id}")
-    print(f"DEBUG: Forwarded from chat: {update.message.forward_from_chat}")
+    print(f"🔍 ✅ FORWARDED MESSAGE DETECTED!")
+    print(f"🔍 Forwarded from user: {update.message.forward_from.id}")
+    print(f"🔍 Forwarded from chat: {update.message.forward_from_chat}")
+    print(f"🔍 Forwarded user name: {update.message.forward_from.first_name} {update.message.forward_from.last_name}")
+    print(f"🔍 Forwarded user username: {update.message.forward_from.username}")
     
     try:
         # Reload data to get latest users
@@ -245,9 +251,10 @@ async def handle_forwarded_message(update: Update, context: ContextTypes.DEFAULT
             registered_users.append(new_user)
             action = "qo'shildi"
         
-        print(f"DEBUG: About to save data. Current users: {len(registered_users)}")
+        print(f"🔍 About to save data. Current users: {len(registered_users)}")
         save_data()
-        print(f"DEBUG: Data saved successfully")
+        print(f"🔍 ✅ Data saved successfully!")
+        print(f"🔍 Final user count: {len(registered_users)}")
         
         # Send confirmation to admin
         await update.message.reply_text(
@@ -1521,6 +1528,9 @@ def main():
         per_message=False,
     )
 
+    # Handle forwarded messages from admin to recover user data (MUST BE FIRST)
+    application.add_handler(MessageHandler(filters.ChatType.PRIVATE, handle_forwarded_message))
+    
     application.add_handler(conv_handler)
     application.add_handler(CommandHandler('export', export_command))
     application.add_handler(CommandHandler('chatid', get_chat_id))
@@ -1531,8 +1541,6 @@ def main():
     application.add_handler(CommandHandler('userid', userid_command))
     # Catch any command that looks like a Telegram ID (e.g., /123456789)
     application.add_handler(MessageHandler(filters.Regex(r'^/\d+$') & filters.ChatType.PRIVATE, userid_command))
-    # Handle forwarded messages from admin to recover user data
-    application.add_handler(MessageHandler(filters.ChatType.PRIVATE, handle_forwarded_message))
     application.add_handler(CallbackQueryHandler(approve_callback, pattern='^approve_'))
     application.add_handler(CallbackQueryHandler(reject_callback, pattern='^reject_'))
 

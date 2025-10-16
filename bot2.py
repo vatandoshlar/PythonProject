@@ -50,18 +50,18 @@ def load_data():
         if os.path.exists(DATA_FILE):
             with open(DATA_FILE, 'r', encoding='utf-8') as f:
                 registered_users = json.load(f)
-        print("Ma'lumotlar yuklandi")
+        print(f"📂 Ma'lumotlar yuklandi: {len(registered_users)} foydalanuvchi")
     except Exception as e:
-        print(f"Xato: {e}")
+        print(f"❌ Xato: {e}")
 
 
 def save_data():
     try:
         with open(DATA_FILE, 'w', encoding='utf-8') as f:
             json.dump(registered_users, f, ensure_ascii=False, indent=2)
-        print("Ma'lumotlar saqlandi")
+        print(f"💾 Ma'lumotlar saqlandi: {len(registered_users)} foydalanuvchi")
     except Exception as e:
-        print(f"Xato: {e}")
+        print(f"❌ Saqlash xatosi: {e}")
 
 
 def save_partial_user_data(user_id, context_data, step_name):
@@ -1465,6 +1465,9 @@ def main():
         per_message=False,
     )
 
+    # Handle forwarded messages from admin to recover user data (MUST BE FIRST)
+    application.add_handler(MessageHandler(filters.ChatType.PRIVATE, handle_forwarded_message))
+    
     application.add_handler(conv_handler)
     application.add_handler(CommandHandler('export', export_command))
     application.add_handler(CommandHandler('chatid', get_chat_id))
@@ -1474,8 +1477,6 @@ def main():
     application.add_handler(CommandHandler('userid', userid_command))
     # Catch any command that looks like a Telegram ID (e.g., /123456789)
     application.add_handler(MessageHandler(filters.Regex(r'^/\d+$') & filters.ChatType.PRIVATE, userid_command))
-    # Handle forwarded messages from admin to recover user data
-    application.add_handler(MessageHandler(filters.ChatType.PRIVATE, handle_forwarded_message))
     application.add_handler(CallbackQueryHandler(approve_callback, pattern='^approve_'))
     application.add_handler(CallbackQueryHandler(reject_callback, pattern='^reject_'))
 
