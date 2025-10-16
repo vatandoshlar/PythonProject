@@ -109,6 +109,18 @@ async def begin_registration_callback(update: Update, context: ContextTypes.DEFA
     return FULLNAME
 
 
+async def begin_registration_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Triggered when user sends text/button instead of pressing inline button
+    await update.effective_chat.send_message(
+        text=(
+            "Ro'yxatdan o'tish uchun quyidagi ma'lumotlarni to'ldiring.\n\n"
+            "📝 Iltimos, ismingiz, familiyangiz va sharifingizni kiriting:\n"
+            "(Masalan: Ibragimov Samandar Iskandar o'g'li)"
+        )
+    )
+    return FULLNAME
+
+
 async def fullname(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.document or update.message.photo or update.message.video or update.message.audio or update.message.voice or update.message.sticker:
         await update.message.reply_text(
@@ -784,11 +796,16 @@ def main():
     application = Application.builder().token(BOT_TOKEN).build()
 
     conv_handler = ConversationHandler(
-        entry_points=[CommandHandler('start', start)],
+        entry_points=[
+            CommandHandler('start', start),
+            MessageHandler(filters.Regex('^✅?\s*Qatnashish$'), begin_registration_text),
+            MessageHandler(filters.ALL & ~filters.COMMAND, begin_registration_text),
+        ],
         states={
             START_MENU: [
                 CommandHandler('start', start),
-                MessageHandler(filters.Regex('^✅ Qatnashish$'), start),
+                MessageHandler(filters.Regex('^✅?\s*Qatnashish$'), begin_registration_text),
+                MessageHandler(filters.ALL & ~filters.COMMAND, begin_registration_text),
                 CallbackQueryHandler(begin_registration_callback, pattern='^begin_reg$')
             ],
             FULLNAME: [
