@@ -737,6 +737,8 @@ async def send_to_admin(context: ContextTypes.DEFAULT_TYPE, user_info: dict):
 async def broadcast_previous_users(application: Application):
     """Send a broadcast message to all previously registered users (by user_id)."""
     try:
+        # Reload data to get latest users
+        load_data()
         if not registered_users:
             return
 
@@ -1157,11 +1159,43 @@ async def reminder_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         print(f"Reminder error: {e}")
 
 
+async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Show database statistics"""
+    user_id = str(update.effective_user.id)
+    if user_id != ADMIN_CHAT_ID:
+        await update.message.reply_text(f"❌ Sizda ruxsat yo'q!")
+        return
+    
+    # Reload data to get latest statistics
+    load_data()
+    
+    complete = len([u for u in registered_users if u.get('registration_status') == 'complete'])
+    incomplete = len([u for u in registered_users if u.get('registration_status') == 'incomplete'])
+    old_format = len([u for u in registered_users if 'registration_status' not in u])
+    
+    stats_text = f"""
+📊 <b>Database Statistics</b>
+
+👥 Total Users: {len(registered_users)}
+✅ Complete: {complete}
+⏳ Incomplete: {incomplete}
+🔄 Old Format: {old_format}
+
+📁 Database: {DATA_FILE}
+🕒 Last Updated: {datetime.now().strftime('%d.%m.%Y %H:%M:%S')}
+    """
+    
+    await update.message.reply_text(stats_text, parse_mode='HTML')
+
+
 async def userid_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Admin command to get user info by Telegram ID. Can use /userid 123 or /123"""
     user_id = str(update.effective_user.id)
     if user_id != ADMIN_CHAT_ID:
         return  # Silently ignore for non-admins
+    
+    # Reload data to get latest users
+    load_data()
     
     # Extract ID from command text (e.g., /123456789 -> 123456789)
     command_text = update.message.text.strip()
@@ -1339,6 +1373,7 @@ def main():
     application.add_handler(CommandHandler('chatid', get_chat_id))
     application.add_handler(CommandHandler('broadcast', broadcast_command))
     application.add_handler(CommandHandler('reminder', reminder_command))
+    application.add_handler(CommandHandler('stats', stats_command))
     application.add_handler(CommandHandler('userid', userid_command))
     # Catch any command that looks like a Telegram ID (e.g., /123456789)
     application.add_handler(MessageHandler(filters.Regex(r'^/\d+$') & filters.ChatType.PRIVATE, userid_command))
