@@ -12,7 +12,7 @@ import openpyxl
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 
 # Bot konfiguratsiyasi
-BOT_TOKEN = os.getenv('BOT_TOKEN', '8306737061:AAHXs3HSPQC3BrXEQfdygirhAlNkNVZy1oc')
+BOT_TOKEN = os.getenv('BOT_TOKEN', '7729290828:AAFJl5pxtdnyvA6czTtcDQ3iexVq_Fd7_o0')
 ADMIN_CHAT_ID = os.getenv('ADMIN_CHAT_ID', '7605860772')
 GROUP_ID = os.getenv('GROUP_ID', '-1002930763309')
 
