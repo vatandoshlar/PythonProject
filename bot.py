@@ -104,6 +104,63 @@ def save_partial_user_data(user_id, context_data, step_name):
         print(f"Error saving partial data: {e}")
 
 
+async def send_reminder_to_incomplete_users():
+    """Send reminder messages to users with incomplete registrations"""
+    try:
+        incomplete_users = [u for u in registered_users if u.get('registration_status') == 'incomplete']
+        
+        if not incomplete_users:
+            print("No incomplete registrations to remind")
+            return
+        
+        print(f"Found {len(incomplete_users)} incomplete registrations")
+        
+        for user in incomplete_users:
+            try:
+                user_id = user.get('user_id')
+                current_step = user.get('current_step', 'Noma\'lum')
+                last_updated = user.get('last_updated', '')
+                
+                # Create reminder message based on current step
+                step_messages = {
+                    'fullname': "👤 Ismingizni kiriting",
+                    'country': "🌍 Davlatni tanlang", 
+                    'city': "🏙️ Shaharni kiriting",
+                    'birthdate': "📅 Tug'ilgan sanangizni kiriting",
+                    'phone': "📱 Telefon raqamingizni kiriting",
+                    'workplace': "🏢 Ish joyingizni kiriting",
+                    'specialty': "💼 Mutaxassisligingizni kiriting",
+                    'education': "🎓 Ma'lumot darajangizni tanlang",
+                    'nomination': "🏆 Nominatsiyani tanlang"
+                }
+                
+                next_step = step_messages.get(current_step, "Ro'yxatdan o'tishni davom eting")
+                
+                reminder_text = (
+                    f"⏰ <b>Eslatma!</b>\n\n"
+                    f"📋 Sizning ro'yxatdan o'tish jarayoningiz to'liq yakunlanmagan.\n\n"
+                    f"🔄 Keyingi qadam: {next_step}\n\n"
+                    f"📅 Oxirgi yangilanish: {last_updated}\n\n"
+                    f"✅ Ro'yxatdan o'tishni yakunlash uchun /start ni bosing va jarayonni davom eting.\n\n"
+                    f"❓ Yordam kerak bo'lsa, admin bilan bog'laning."
+                )
+                
+                # Send reminder message
+                await context.bot.send_message(
+                    chat_id=user_id,
+                    text=reminder_text,
+                    parse_mode='HTML'
+                )
+                
+                print(f"Reminder sent to user {user_id} (step: {current_step})")
+                
+            except Exception as e:
+                print(f"Error sending reminder to user {user.get('user_id', 'unknown')}: {e}")
+                
+    except Exception as e:
+        print(f"Error in send_reminder_to_incomplete_users: {e}")
+
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
 
@@ -983,6 +1040,103 @@ async def get_chat_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
+async def reminder_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Admin command to send reminders to users with incomplete registrations"""
+    user_id = str(update.effective_user.id)
+    print(f"Reminder so'raldi. User ID: {user_id}")
+    print(f"Admin ID: {ADMIN_CHAT_ID}")
+
+    if user_id != ADMIN_CHAT_ID:
+        await update.message.reply_text(f"❌ Sizda ruxsat yo'q!")
+        return
+
+    try:
+        incomplete_users = [u for u in registered_users if u.get('registration_status') == 'incomplete']
+        
+        if not incomplete_users:
+            await update.message.reply_text("📊 To'liq bo'lmagan ro'yxatdan o'tishlar yo'q.")
+            return
+
+        await update.message.reply_text(
+            f"⏰ <b>Eslatma yuborilmoqda...</b>\n\n"
+            f"📊 Jami {len(incomplete_users)} ta to'liq bo'lmagan ro'yxatdan o'tish\n\n"
+            f"▱▱▱▱▱▱▱▱▱▱ 0%",
+            parse_mode='HTML'
+        )
+
+        sent_count = 0
+        failed_count = 0
+
+        for i, user in enumerate(incomplete_users):
+            try:
+                user_id = user.get('user_id')
+                current_step = user.get('current_step', 'Noma\'lum')
+                last_updated = user.get('last_updated', '')
+                
+                # Create reminder message based on current step
+                step_messages = {
+                    'fullname': "👤 Ismingizni kiriting",
+                    'country': "🌍 Davlatni tanlang", 
+                    'city': "🏙️ Shaharni kiriting",
+                    'birthdate': "📅 Tug'ilgan sanangizni kiriting",
+                    'phone': "📱 Telefon raqamingizni kiriting",
+                    'workplace': "🏢 Ish joyingizni kiriting",
+                    'specialty': "💼 Mutaxassisligingizni kiriting",
+                    'education': "🎓 Ma'lumot darajangizni tanlang",
+                    'nomination': "🏆 Nominatsiyani tanlang"
+                }
+                
+                next_step = step_messages.get(current_step, "Ro'yxatdan o'tishni davom eting")
+                
+                reminder_text = (
+                    f"⏰ <b>Eslatma!</b>\n\n"
+                    f"📋 Sizning ro'yxatdan o'tish jarayoningiz to'liq yakunlanmagan.\n\n"
+                    f"🔄 Keyingi qadam: {next_step}\n\n"
+                    f"📅 Oxirgi yangilanish: {last_updated}\n\n"
+                    f"✅ Ro'yxatdan o'tishni yakunlash uchun /start ni bosing va jarayonni davom eting.\n\n"
+                    f"❓ Yordam kerak bo'lsa, admin bilan bog'laning."
+                )
+                
+                # Send reminder message
+                await context.bot.send_message(
+                    chat_id=user_id,
+                    text=reminder_text,
+                    parse_mode='HTML'
+                )
+                
+                sent_count += 1
+                print(f"Reminder sent to user {user_id} (step: {current_step})")
+                
+                # Update progress
+                progress = int((i + 1) / len(incomplete_users) * 100)
+                progress_bar = "█" * (progress // 10) + "▱" * (10 - progress // 10)
+                
+                await update.message.edit_text(
+                    f"⏰ <b>Eslatma yuborilmoqda...</b>\n\n"
+                    f"📊 Jami {len(incomplete_users)} ta to'liq bo'lmagan ro'yxatdan o'tish\n"
+                    f"✅ Yuborildi: {sent_count}\n"
+                    f"❌ Xato: {failed_count}\n\n"
+                    f"{progress_bar} {progress}%",
+                    parse_mode='HTML'
+                )
+                
+            except Exception as e:
+                failed_count += 1
+                print(f"Error sending reminder to user {user.get('user_id', 'unknown')}: {e}")
+
+        await update.message.edit_text(
+            f"✅ <b>Eslatma yuborish yakunlandi!</b>\n\n"
+            f"📊 Jami: {len(incomplete_users)} ta\n"
+            f"✅ Yuborildi: {sent_count} ta\n"
+            f"❌ Xato: {failed_count} ta",
+            parse_mode='HTML'
+        )
+
+    except Exception as e:
+        await update.message.reply_text(f"❌ Export xatosi: {e}")
+        print(f"Reminder error: {e}")
+
+
 async def userid_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Admin command to get user info by Telegram ID. Can use /userid 123 or /123"""
     user_id = str(update.effective_user.id)
@@ -1164,6 +1318,7 @@ def main():
     application.add_handler(CommandHandler('export', export_command))
     application.add_handler(CommandHandler('chatid', get_chat_id))
     application.add_handler(CommandHandler('broadcast', broadcast_command))
+    application.add_handler(CommandHandler('reminder', reminder_command))
     application.add_handler(CommandHandler('userid', userid_command))
     # Catch any command that looks like a Telegram ID (e.g., /123456789)
     application.add_handler(MessageHandler(filters.Regex(r'^/\d+$') & filters.ChatType.PRIVATE, userid_command))
