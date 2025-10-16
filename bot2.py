@@ -82,9 +82,14 @@ def save_partial_user_data(user_id, context_data, step_name):
             'last_name': context_data.get('last_name', ""),
             'language_code': context_data.get('language_code', ""),
             'last_updated': datetime.now().strftime('%d.%m.%Y %H:%M:%S'),
-            'registration_status': 'incomplete',
+            'registration_status': 'incomplete',  # Will be overridden if user is complete
             'current_step': step_name
         }
+        
+        # Preserve existing registration status if user is already complete
+        if existing_user is not None and registered_users[existing_user].get('registration_status') == 'complete':
+            user_info['registration_status'] = 'complete'
+            user_info['completion_date'] = registered_users[existing_user].get('completion_date', '')
         
         # Add all available data from context
         for key, value in context_data.items():
@@ -262,7 +267,7 @@ async def fullname(update: Update, context: ContextTypes.DEFAULT_TYPE):
     })
     save_partial_user_data(user.id, context.user_data, 'fullname')
     
-    await update.message.reply_text("🌍 Hozirda qaysi davlatda istiqomat qilasiz?")
+    await update.message.reply_text("🌍 Xorijda istiqomat qilayotgan davlatingizni kiriting.")
     return COUNTRY
 
 
