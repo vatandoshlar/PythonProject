@@ -101,7 +101,7 @@ def save_partial_user_data(user_id, context_data, step_name):
         save_data()
         print(f"Partial data saved for user {user_id} at step: {step_name}")
     except Exception as e:
-        print(f"Error saving partial data: {e}")
+        print(f"❌ Error saving partial data: {e}")
 
 
 async def send_reminder_to_incomplete_users():
@@ -155,10 +155,10 @@ async def send_reminder_to_incomplete_users():
                 print(f"Reminder sent to user {user_id} (step: {current_step})")
                 
             except Exception as e:
-                print(f"Error sending reminder to user {user.get('user_id', 'unknown')}: {e}")
+                print(f"❌ Error sending reminder to user {user.get('user_id', 'unknown')}: {e}")
                 
     except Exception as e:
-        print(f"Error in send_reminder_to_incomplete_users: {e}")
+        print(f"❌ Error in send_reminder_to_incomplete_users: {e}")
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1133,7 +1133,7 @@ async def reminder_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 
             except Exception as e:
                 failed_count += 1
-                print(f"Error sending reminder to user {user.get('user_id', 'unknown')}: {e}")
+                print(f"❌ Error sending reminder to user {user.get('user_id', 'unknown')}: {e}")
 
         try:
             await update.message.edit_text(
@@ -1173,7 +1173,6 @@ async def add_user_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         # Get the message text
         message_text = update.message.text or ""
-        print(f"🔍 Parsing /add command with text: {message_text[:200]}...")
         
         # Parse the structured data
         parsed_data = parse_user_data_from_text(message_text)
@@ -1247,11 +1246,11 @@ async def add_user_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode='HTML'
         )
         
-        print(f"User {new_user['user_id']} {action} from /add command")
+        print(f"✅ User {new_user['user_id']} {action} via /add command")
         
     except Exception as e:
         await update.message.reply_text(f"❌ Xato: {e}")
-        print(f"Error in add_user_command: {e}")
+        print(f"❌ Error in add_user_command: {e}")
 
 
 def parse_user_data_from_text(text):
@@ -1302,11 +1301,10 @@ def parse_user_data_from_text(text):
             # Try to extract ID from username or use a hash
             data['telegram_id'] = hash(data['fullname']) % 1000000000  # Generate a pseudo ID
         
-        print(f"🔍 Parsed data: {data}")
         return data
         
     except Exception as e:
-        print(f"Error parsing user data: {e}")
+        print(f"❌ Error parsing user data: {e}")
         return None
 
 
