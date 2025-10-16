@@ -12,7 +12,7 @@ import openpyxl
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 
 # Bot konfiguratsiyasi
-BOT_TOKEN = os.getenv('BOT_TOKEN', '7558518169:AAHNv3OfiVeIZMO6QHlbNlOXX09MeUskqzM')
+BOT_TOKEN = os.getenv('BOT_TOKEN', '8306737061:AAHXs3HSPQC3BrXEQfdygirhAlNkNVZy1oc')
 ADMIN_CHAT_ID = os.getenv('ADMIN_CHAT_ID', '7605860772')
 GROUP_ID = os.getenv('GROUP_ID', '-1002930763309')
 
@@ -21,7 +21,7 @@ GROUP_ID = os.getenv('GROUP_ID', '-1002930763309')
  SPECIALTY, EDUCATION, NOMINATION, CREATIVE_WORK) = range(11)
 
 # Ma'lumotlar fayli
-DATA_FILE = 'registered_users_bot2.json'
+DATA_FILE = 'registered_users.json'
 
 # Global ma'lumotlar
 registered_users = []
