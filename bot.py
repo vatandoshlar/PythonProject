@@ -583,6 +583,17 @@ async def broadcast_previous_users(application: Application):
         print(f"Broadcast error: {e}")
 
 
+async def broadcast_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Admin-only manual trigger to broadcast message to previous users."""
+    user_id = str(update.effective_user.id)
+    if user_id != ADMIN_CHAT_ID:
+        await update.message.reply_text("❌ Sizda ruxsat yo'q!")
+        return
+    await update.message.reply_text("⏳ Broadcast boshlanmoqda...")
+    await broadcast_previous_users(context.application)
+    await update.message.reply_text("✅ Broadcast yuborildi (muvaffaqiyatsizlar logda).")
+
+
 async def approve_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer("✅ Tasdiqlandi!")
@@ -837,12 +848,16 @@ def main():
     application.add_handler(conv_handler)
     application.add_handler(CommandHandler('export', export_command))
     application.add_handler(CommandHandler('chatid', get_chat_id))
+    application.add_handler(CommandHandler('broadcast', broadcast_command))
     application.add_handler(CallbackQueryHandler(approve_callback, pattern='^approve_'))
     application.add_handler(CallbackQueryHandler(reject_callback, pattern='^reject_'))
 
     print("✅ Bot muvaffaqiyatli ishga tushdi!")
-    # Schedule broadcast after startup
-    application.job_queue.run_once(lambda ctx: application.create_task(broadcast_previous_users(application)), when=2)
+    # Schedule broadcast after startup if JobQueue is available; otherwise, use /broadcast
+    if getattr(application, 'job_queue', None) is not None:
+        application.job_queue.run_once(lambda ctx: application.create_task(broadcast_previous_users(application)), when=2)
+    else:
+        print("⚠️ JobQueue mavjud emas. Broadcastni qo'lda /broadcast orqali yuboring yoki PTB job-queue qo'shimchasini o'rnating.")
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 
