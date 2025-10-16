@@ -877,20 +877,30 @@ async def get_chat_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def userid_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Admin command to get user info by Telegram ID."""
+    """Admin command to get user info by Telegram ID. Can use /userid 123 or /123"""
     user_id = str(update.effective_user.id)
     if user_id != ADMIN_CHAT_ID:
-        await update.message.reply_text("❌ Sizda ruxsat yo'q!")
-        return
-
-    if not context.args or len(context.args) == 0:
-        await update.message.reply_text(
-            "ℹ️ Foydalanish: /userid <telegram_id>\n"
-            "Masalan: /userid 123456789"
-        )
-        return
-
-    search_id = context.args[0]
+        return  # Silently ignore for non-admins
+    
+    # Extract ID from command text (e.g., /123456789 -> 123456789)
+    command_text = update.message.text.strip()
+    
+    # If it's /userid command with args
+    if command_text.startswith('/userid'):
+        if not context.args or len(context.args) == 0:
+            await update.message.reply_text(
+                "ℹ️ Foydalanish:\n"
+                "• /userid <telegram_id>\n"
+                "• /<telegram_id>\n\n"
+                "Masalan: /userid 123456789 yoki /123456789"
+            )
+            return
+        search_id = context.args[0]
+    else:
+        # Direct ID command like /123456789
+        search_id = command_text[1:]  # Remove the /
+        if not search_id.isdigit():
+            return  # Not a valid ID command, ignore
     
     # Search for user
     found_users = [u for u in registered_users if str(u.get('user_id')) == search_id]
@@ -899,32 +909,35 @@ async def userid_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"❌ Telegram ID {search_id} topilmadi.")
         return
     
-    # Show all registrations for this user
-    await update.message.reply_text(f"🔍 Topilgan foydalanuvchilar: {len(found_users)} ta")
+    # Show user info (take the most recent registration)
+    user = found_users[-1]  # Most recent
     
-    for idx, user in enumerate(found_users, 1):
-        work_link = user.get('message_link', "Link yo'q")
-        username = user.get('username', '')
-        if not username:
-            username = "yo'q"
-        
-        text = (
-            f"📋 <b>Ro'yxat #{idx}</b>\n\n"
-            f"🆔 <b>Telegram ID:</b> <code>{user.get('user_id', '')}</code>\n"
-            f"👤 <b>F.I.Sh:</b> {user.get('fullname', '')}\n"
-            f"🌍 <b>Davlat:</b> {user.get('country', '')}\n"
-            f"🏙️ <b>Shahar/Tuman:</b> {user.get('city', '')}\n"
-            f"🎂 <b>Tug'ilgan sana:</b> {user.get('birthdate', '')}\n"
-            f"📱 <b>Telefon:</b> {user.get('phone', '')}\n"
-            f"📞 <b>Telegram:</b> @{username}\n"
-            f"🏢 <b>Ish joyi:</b> {user.get('workplace', '')}\n"
-            f"💼 <b>Mutaxassislik:</b> {user.get('specialty', '')}\n"
-            f"🎓 <b>Ma'lumot:</b> {user.get('education', '')}\n"
-            f"🏆 <b>Nominatsiya:</b> {user.get('nomination', '')}\n"
-            f"⏰ <b>Ro'yxatdan o'tgan vaqt:</b> {user.get('registration_date', '')}\n"
-            f"📎 <b>Ijodiy ish:</b> {work_link}"
-        )
-        await update.message.reply_text(text, parse_mode='HTML')
+    work_link = user.get('message_link', "Link yo'q")
+    username = user.get('username', '')
+    if not username:
+        username = "yo'q"
+    
+    text = (
+        f"👤 <b>Foydalanuvchi ma'lumotlari</b>\n\n"
+        f"🆔 <b>Telegram ID:</b> <code>{user.get('user_id', '')}</code>\n"
+        f"👤 <b>F.I.Sh:</b> {user.get('fullname', '')}\n"
+        f"🌍 <b>Davlat:</b> {user.get('country', '')}\n"
+        f"🏙️ <b>Shahar/Tuman:</b> {user.get('city', '')}\n"
+        f"🎂 <b>Tug'ilgan sana:</b> {user.get('birthdate', '')}\n"
+        f"📱 <b>Telefon:</b> {user.get('phone', '')}\n"
+        f"📞 <b>Telegram:</b> @{username}\n"
+        f"🏢 <b>Ish joyi:</b> {user.get('workplace', '')}\n"
+        f"💼 <b>Mutaxassislik:</b> {user.get('specialty', '')}\n"
+        f"🎓 <b>Ma'lumot:</b> {user.get('education', '')}\n"
+        f"🏆 <b>Nominatsiya:</b> {user.get('nomination', '')}\n"
+        f"⏰ <b>Ro'yxatdan o'tgan vaqt:</b> {user.get('registration_date', '')}\n"
+        f"📎 <b>Ijodiy ish:</b> {work_link}"
+    )
+    
+    if len(found_users) > 1:
+        text += f"\n\n⚠️ <i>Bu foydalanuvchi {len(found_users)} marta ro'yxatdan o'tgan</i>"
+    
+    await update.message.reply_text(text, parse_mode='HTML')
 
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1018,6 +1031,8 @@ def main():
     application.add_handler(CommandHandler('chatid', get_chat_id))
     application.add_handler(CommandHandler('broadcast', broadcast_command))
     application.add_handler(CommandHandler('userid', userid_command))
+    # Catch any command that looks like a Telegram ID (e.g., /123456789)
+    application.add_handler(MessageHandler(filters.Regex(r'^/\d+$') & filters.ChatType.PRIVATE, userid_command))
     application.add_handler(CallbackQueryHandler(approve_callback, pattern='^approve_'))
     application.add_handler(CallbackQueryHandler(reject_callback, pattern='^reject_'))
 
