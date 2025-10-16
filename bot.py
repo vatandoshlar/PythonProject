@@ -111,7 +111,10 @@ async def begin_registration_callback(update: Update, context: ContextTypes.DEFA
 
 async def begin_registration_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Triggered when user sends text/button instead of pressing inline button
-    await update.effective_chat.send_message("", reply_markup=ReplyKeyboardRemove())
+    if update.message:
+        await update.message.reply_text("✅", reply_markup=ReplyKeyboardRemove())
+    else:
+        await update.effective_chat.send_message("✅", reply_markup=ReplyKeyboardRemove())
     # Show the Start Menu (welcome text + inline buttons)
     return await start(update, context)
 
