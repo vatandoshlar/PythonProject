@@ -1112,7 +1112,7 @@ async def export_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Count complete and incomplete registrations
         complete_count = len([u for u in registered_users if u.get('registration_status') == 'complete'])
         incomplete_count = len([u for u in registered_users if u.get('registration_status') == 'incomplete'])
-        
+
         with open(excel_filename, 'rb') as excel_file:
             await update.message.reply_document(
                 document=excel_file,
@@ -1299,6 +1299,157 @@ async def reminder_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         await update.message.reply_text(f"❌ Export xatosi: {e}")
         print(f"Reminder error: {e}")
+
+
+async def add_user_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Parse structured user data from /add command"""
+    user_id = str(update.effective_user.id)
+    
+    # Check if message is from admin
+    if user_id != ADMIN_CHAT_ID:
+        await update.message.reply_text(f"❌ Sizda ruxsat yo'q!")
+        return
+    
+    try:
+        load_data()
+        
+        # Get the message text
+        message_text = update.message.text or ""
+        print(f"🔍 Parsing /add command with text: {message_text[:200]}...")
+        
+        # Parse the structured data
+        parsed_data = parse_user_data_from_text(message_text)
+        
+        if not parsed_data:
+            await update.message.reply_text(
+                "❌ <b>Xato!</b>\n\n"
+                "Ma'lumotlarni to'g'ri formatda yuboring.\n"
+                "Namuna:\n"
+                "👤 F.I.Sh: Ism Familiya\n"
+                "🌍 Davlat: Davlat nomi\n"
+                "🏙️ Shahar/Tuman: Shahar nomi",
+                parse_mode='HTML'
+            )
+            return
+        
+        # Create new user entry
+        new_user = {
+            'user_id': parsed_data.get('telegram_id', 0),
+            'username': parsed_data.get('username', 'Username yo\'q'),
+            'first_name': parsed_data.get('telegram_first_name', ''),
+            'last_name': parsed_data.get('telegram_last_name', ''),
+            'language_code': parsed_data.get('language', ''),
+            'registration_date': parsed_data.get('registration_time', datetime.now().strftime('%d.%m.%Y %H:%M:%S')),
+            'registration_status': 'complete',
+            'completion_date': datetime.now().strftime('%d.%m.%Y %H:%M:%S'),
+            'fullname': parsed_data.get('fullname', ''),
+            'country': parsed_data.get('country', ''),
+            'city': parsed_data.get('city', ''),
+            'birthdate': parsed_data.get('birthdate', ''),
+            'phone': parsed_data.get('phone', ''),
+            'workplace': parsed_data.get('workplace', ''),
+            'specialty': parsed_data.get('specialty', ''),
+            'education': parsed_data.get('education', ''),
+            'nomination': parsed_data.get('nomination', ''),
+            'file': {
+                'file_id': 'manual_add',
+                'file_type': 'manual',
+                'file_name': 'manual_entry.txt'
+            },
+            'added_manually': True,
+            'added_by_admin': user_id
+        }
+        
+        # Check if user already exists
+        existing_user = None
+        for i, user in enumerate(registered_users):
+            if user.get('user_id') == new_user['user_id'] or user.get('fullname') == new_user['fullname']:
+                existing_user = i
+                break
+        
+        if existing_user is not None:
+            # Update existing user
+            registered_users[existing_user] = new_user
+            action = "yangilandi"
+        else:
+            # Add new user
+            registered_users.append(new_user)
+            action = "qo'shildi"
+        
+        save_data()
+        
+        # Send confirmation to admin
+        await update.message.reply_text(
+            f"✅ <b>Foydalanuvchi ma'lumotlari {action}!</b>\n\n"
+            f"👤 Foydalanuvchi: {new_user['fullname']}\n"
+            f"🆔 ID: {new_user['user_id']}\n"
+            f"📅 Sana: {new_user['registration_date']}\n"
+            f"🔄 Holat: Qo'lda qo'shildi\n\n"
+            f"📊 Jami foydalanuvchilar: {len(registered_users)}",
+            parse_mode='HTML'
+        )
+        
+        print(f"User {new_user['user_id']} {action} from /add command")
+        
+    except Exception as e:
+        await update.message.reply_text(f"❌ Xato: {e}")
+        print(f"Error in add_user_command: {e}")
+
+
+def parse_user_data_from_text(text):
+    """Parse structured user data from text message"""
+    try:
+        data = {}
+        
+        # Split by lines and parse each field
+        lines = text.split('\n')
+        
+        for line in lines:
+            line = line.strip()
+            if not line or line.startswith('/add'):
+                continue
+                
+            # Parse different field patterns
+            if '👤 F.I.Sh:' in line:
+                data['fullname'] = line.split('👤 F.I.Sh:')[1].strip()
+            elif '🌍 Davlat:' in line:
+                data['country'] = line.split('🌍 Davlat:')[1].strip()
+            elif '🏙️ Shahar/Tuman:' in line:
+                data['city'] = line.split('🏙️ Shahar/Tuman:')[1].strip()
+            elif '🎂 Tug\'ilgan sana:' in line:
+                data['birthdate'] = line.split('🎂 Tug\'ilgan sana:')[1].strip()
+            elif '📞 Telefon:' in line:
+                data['phone'] = line.split('📞 Telefon:')[1].strip()
+            elif '✉️ Telegram:' in line:
+                data['username'] = line.split('✉️ Telegram:')[1].strip()
+            elif '📝 Ism (Telegram):' in line:
+                data['telegram_first_name'] = line.split('📝 Ism (Telegram):')[1].strip()
+            elif '📝 Familiya (Telegram):' in line:
+                data['telegram_last_name'] = line.split('📝 Familiya (Telegram):')[1].strip()
+            elif '🌐 Til:' in line:
+                data['language'] = line.split('🌐 Til:')[1].strip()
+            elif '🏢 Ish joyi:' in line:
+                data['workplace'] = line.split('🏢 Ish joyi:')[1].strip()
+            elif '💼 Mutaxassislik:' in line:
+                data['specialty'] = line.split('💼 Mutaxassislik:')[1].strip()
+            elif '🎓 Ma\'lumot:' in line:
+                data['education'] = line.split('🎓 Ma\'lumot:')[1].strip()
+            elif '🏆 Nominatsiya:' in line:
+                data['nomination'] = line.split('🏆 Nominatsiya:')[1].strip()
+            elif '⏰ Ro\'yxatdan o\'tgan vaqt:' in line:
+                data['registration_time'] = line.split('⏰ Ro\'yxatdan o\'tgan vaqt:')[1].strip()
+        
+        # Extract Telegram ID from username or generate one
+        if data.get('username') and data['username'] != "Username yo'q":
+            # Try to extract ID from username or use a hash
+            data['telegram_id'] = hash(data['fullname']) % 1000000000  # Generate a pseudo ID
+        
+        print(f"🔍 Parsed data: {data}")
+        return data
+        
+    except Exception as e:
+        print(f"Error parsing user data: {e}")
+        return None
 
 
 async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1512,12 +1663,13 @@ def main():
 
     # Handle forwarded messages from admin to recover user data (MUST BE FIRST)
     application.add_handler(MessageHandler(filters.ChatType.PRIVATE, handle_forwarded_message))
-    
+
     application.add_handler(conv_handler)
     application.add_handler(CommandHandler('export', export_command))
     application.add_handler(CommandHandler('chatid', get_chat_id))
     application.add_handler(CommandHandler('broadcast', broadcast_command))
     application.add_handler(CommandHandler('reminder', reminder_command))
+    application.add_handler(CommandHandler('add', add_user_command))
     application.add_handler(CommandHandler('stats', stats_command))
     application.add_handler(CommandHandler('userid', userid_command))
     # Catch any command that looks like a Telegram ID (e.g., /123456789)
