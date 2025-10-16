@@ -1107,30 +1107,46 @@ async def reminder_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 sent_count += 1
                 print(f"Reminder sent to user {user_id} (step: {current_step})")
                 
-                # Update progress
-                progress = int((i + 1) / len(incomplete_users) * 100)
-                progress_bar = "█" * (progress // 10) + "▱" * (10 - progress // 10)
-                
-                await update.message.edit_text(
-                    f"⏰ <b>Eslatma yuborilmoqda...</b>\n\n"
-                    f"📊 Jami {len(incomplete_users)} ta to'liq bo'lmagan ro'yxatdan o'tish\n"
-                    f"✅ Yuborildi: {sent_count}\n"
-                    f"❌ Xato: {failed_count}\n\n"
-                    f"{progress_bar} {progress}%",
-                    parse_mode='HTML'
-                )
+                # Update progress (only if not the last user)
+                if i < len(incomplete_users) - 1:
+                    progress = int((i + 1) / len(incomplete_users) * 100)
+                    progress_bar = "█" * (progress // 10) + "▱" * (10 - progress // 10)
+                    
+                    try:
+                        await update.message.edit_text(
+                            f"⏰ <b>Eslatma yuborilmoqda...</b>\n\n"
+                            f"📊 Jami {len(incomplete_users)} ta to'liq bo'lmagan ro'yxatdan o'tish\n"
+                            f"✅ Yuborildi: {sent_count}\n"
+                            f"❌ Xato: {failed_count}\n\n"
+                            f"{progress_bar} {progress}%",
+                            parse_mode='HTML'
+                        )
+                    except Exception as edit_error:
+                        print(f"Could not edit progress message: {edit_error}")
+                        # Continue without updating progress
                 
             except Exception as e:
                 failed_count += 1
                 print(f"Error sending reminder to user {user.get('user_id', 'unknown')}: {e}")
 
-        await update.message.edit_text(
-            f"✅ <b>Eslatma yuborish yakunlandi!</b>\n\n"
-            f"📊 Jami: {len(incomplete_users)} ta\n"
-            f"✅ Yuborildi: {sent_count} ta\n"
-            f"❌ Xato: {failed_count} ta",
-            parse_mode='HTML'
-        )
+        try:
+            await update.message.edit_text(
+                f"✅ <b>Eslatma yuborish yakunlandi!</b>\n\n"
+                f"📊 Jami: {len(incomplete_users)} ta\n"
+                f"✅ Yuborildi: {sent_count} ta\n"
+                f"❌ Xato: {failed_count} ta",
+                parse_mode='HTML'
+            )
+        except Exception as edit_error:
+            print(f"Could not edit final message: {edit_error}")
+            # Send a new message instead
+            await update.message.reply_text(
+                f"✅ <b>Eslatma yuborish yakunlandi!</b>\n\n"
+                f"📊 Jami: {len(incomplete_users)} ta\n"
+                f"✅ Yuborildi: {sent_count} ta\n"
+                f"❌ Xato: {failed_count} ta",
+                parse_mode='HTML'
+            )
 
     except Exception as e:
         await update.message.reply_text(f"❌ Export xatosi: {e}")
