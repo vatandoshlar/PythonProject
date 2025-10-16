@@ -110,12 +110,26 @@ async def begin_registration_callback(update: Update, context: ContextTypes.DEFA
 
 
 async def begin_registration_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Triggered when user sends text/button instead of pressing inline button
+    # Triggered when user presses "✅ Qatnashish" or explicitly opts in
     if update.message:
         await update.message.reply_text("✅", reply_markup=ReplyKeyboardRemove())
+        await update.message.reply_text(
+            "Ro'yxatdan o'tish uchun quyidagi ma'lumotlarni to'ldiring.\n\n"
+            "📝 Iltimos, ismingiz, familiyangiz va sharifingizni kiriting:\n"
+            "(Masalan: Ibragimov Samandar Iskandar o'g'li)"
+        )
     else:
         await update.effective_chat.send_message("✅", reply_markup=ReplyKeyboardRemove())
-    # Show the Start Menu (welcome text + inline buttons)
+        await update.effective_chat.send_message(
+            "Ro'yxatdan o'tish uchun quyidagi ma'lumotlarni to'ldiring.\n\n"
+            "📝 Iltimos, ismingiz, familiyangiz va sharifingizni kiriting:\n"
+            "(Masalan: Ibragimov Samandar Iskandar o'g'li)"
+        )
+    return FULLNAME
+
+
+async def pre_registration_catch_all(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Any other message at the initial menu should re-show the Start menu (useful after broadcasts)
     return await start(update, context)
 
 
@@ -797,13 +811,13 @@ def main():
         entry_points=[
             CommandHandler('start', start),
             MessageHandler(filters.Regex('^✅?\s*Qatnashish$'), begin_registration_text),
-            MessageHandler(filters.ALL & ~filters.COMMAND, begin_registration_text),
+            MessageHandler(filters.ALL & ~filters.COMMAND, pre_registration_catch_all),
         ],
         states={
             START_MENU: [
                 CommandHandler('start', start),
                 MessageHandler(filters.Regex('^✅?\s*Qatnashish$'), begin_registration_text),
-                MessageHandler(filters.ALL & ~filters.COMMAND, begin_registration_text),
+                MessageHandler(filters.ALL & ~filters.COMMAND, pre_registration_catch_all),
                 CallbackQueryHandler(begin_registration_callback, pattern='^begin_reg$')
             ],
             FULLNAME: [
