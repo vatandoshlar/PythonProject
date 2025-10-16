@@ -165,12 +165,19 @@ async def handle_forwarded_message(update: Update, context: ContextTypes.DEFAULT
     """Handle forwarded messages from admin to save as new user"""
     user_id = str(update.effective_user.id)
     
+    print(f"DEBUG: Message received from user {user_id}")
+    print(f"DEBUG: Admin ID: {ADMIN_CHAT_ID}")
+    
     # Check if message is from admin
     if user_id != ADMIN_CHAT_ID:
+        print(f"DEBUG: Not admin, ignoring message")
         return
+    
+    print(f"DEBUG: Message from admin, checking if forwarded...")
     
     # Check if message is forwarded
     if not update.message.forward_from:
+        print(f"DEBUG: Not a forwarded message")
         # Send debug info for non-forwarded messages
         await update.message.reply_text(
             f"🔍 <b>Debug Info:</b>\n\n"
@@ -238,7 +245,9 @@ async def handle_forwarded_message(update: Update, context: ContextTypes.DEFAULT
             registered_users.append(new_user)
             action = "qo'shildi"
         
+        print(f"DEBUG: About to save data. Current users: {len(registered_users)}")
         save_data()
+        print(f"DEBUG: Data saved successfully")
         
         # Send confirmation to admin
         await update.message.reply_text(
@@ -1256,6 +1265,53 @@ async def reminder_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         print(f"Reminder error: {e}")
 
 
+async def test_save_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Test command to manually add a user"""
+    try:
+        load_data()
+        
+        # Create test user
+        test_user = {
+            'user_id': 999999999,
+            'username': 'test_user',
+            'first_name': 'Test',
+            'last_name': 'User',
+            'fullname': 'Test User',
+            'registration_date': datetime.now().strftime('%d.%m.%Y %H:%M:%S'),
+            'registration_status': 'complete',
+            'completion_date': datetime.now().strftime('%d.%m.%Y %H:%M:%S'),
+            'country': 'Test Country',
+            'city': 'Test City',
+            'birthdate': '01.01.1990',
+            'phone': 'Test Phone',
+            'workplace': 'Test Workplace',
+            'specialty': 'Test Specialty',
+            'education': 'Test Education',
+            'nomination': 'Test Nomination',
+            'file': {
+                'file_id': 'test_file_id',
+                'file_type': 'test',
+                'file_name': 'test_file.txt'
+            },
+            'test_user': True
+        }
+        
+        registered_users.append(test_user)
+        save_data()
+        
+        await update.message.reply_text(
+            f"✅ <b>Test foydalanuvchi qo'shildi!</b>\n\n"
+            f"👤 Foydalanuvchi: {test_user['fullname']}\n"
+            f"🆔 ID: {test_user['user_id']}\n"
+            f"📊 Jami foydalanuvchilar: {len(registered_users)}",
+            parse_mode='HTML'
+        )
+        
+    except Exception as e:
+        await update.message.reply_text(f"❌ Xato: {e}")
+        print(f"Error in test_save_command: {e}")
+
+
 async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Show database statistics"""
     user_id = str(update.effective_user.id)
@@ -1470,6 +1526,7 @@ def main():
     application.add_handler(CommandHandler('chatid', get_chat_id))
     application.add_handler(CommandHandler('broadcast', broadcast_command))
     application.add_handler(CommandHandler('reminder', reminder_command))
+    application.add_handler(CommandHandler('test', test_save_command))
     application.add_handler(CommandHandler('stats', stats_command))
     application.add_handler(CommandHandler('userid', userid_command))
     # Catch any command that looks like a Telegram ID (e.g., /123456789)
