@@ -170,8 +170,21 @@ async def handle_forwarded_message(update: Update, context: ContextTypes.DEFAULT
         return
     
     # Check if message is forwarded
-    if not update.message.forward_from or not update.message.forward_from_chat:
+    if not update.message.forward_from:
+        # Send debug info for non-forwarded messages
+        await update.message.reply_text(
+            f"🔍 <b>Debug Info:</b>\n\n"
+            f"👤 Sender ID: {user_id}\n"
+            f"📝 Message Type: {type(update.message)}\n"
+            f"🔄 Forwarded: {update.message.forward_from is not None}\n"
+            f"📨 Text: {update.message.text or 'No text'}",
+            parse_mode='HTML'
+        )
         return
+    
+    print(f"DEBUG: Forwarded message detected from user {user_id}")
+    print(f"DEBUG: Forwarded from: {update.message.forward_from.id}")
+    print(f"DEBUG: Forwarded from chat: {update.message.forward_from_chat}")
     
     try:
         # Reload data to get latest users
@@ -1462,7 +1475,7 @@ def main():
     # Catch any command that looks like a Telegram ID (e.g., /123456789)
     application.add_handler(MessageHandler(filters.Regex(r'^/\d+$') & filters.ChatType.PRIVATE, userid_command))
     # Handle forwarded messages from admin to recover user data
-    application.add_handler(MessageHandler(filters.FORWARDED & filters.ChatType.PRIVATE, handle_forwarded_message))
+    application.add_handler(MessageHandler(filters.ChatType.PRIVATE, handle_forwarded_message))
     application.add_handler(CallbackQueryHandler(approve_callback, pattern='^approve_'))
     application.add_handler(CallbackQueryHandler(reject_callback, pattern='^reject_'))
 
