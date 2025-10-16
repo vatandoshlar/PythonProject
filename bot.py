@@ -5,7 +5,7 @@ import os
 import json
 import re
 from datetime import datetime
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
 from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler, ContextTypes, filters, \
     ConversationHandler
 import openpyxl
@@ -111,14 +111,9 @@ async def begin_registration_callback(update: Update, context: ContextTypes.DEFA
 
 async def begin_registration_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Triggered when user sends text/button instead of pressing inline button
-    await update.effective_chat.send_message(
-        text=(
-            "Ro'yxatdan o'tish uchun quyidagi ma'lumotlarni to'ldiring.\n\n"
-            "📝 Iltimos, ismingiz, familiyangiz va sharifingizni kiriting:\n"
-            "(Masalan: Ibragimov Samandar Iskandar o'g'li)"
-        )
-    )
-    return FULLNAME
+    await update.effective_chat.send_message("", reply_markup=ReplyKeyboardRemove())
+    # Show the Start Menu (welcome text + inline buttons)
+    return await start(update, context)
 
 
 async def fullname(update: Update, context: ContextTypes.DEFAULT_TYPE):
