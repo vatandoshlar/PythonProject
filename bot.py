@@ -65,7 +65,6 @@ def save_data():
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    print(f"[START] Called by user {update.effective_user.id}")
     context.user_data.clear()
 
     text = (
@@ -91,16 +90,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # In case /start is triggered from a callback or other update types
         await context.bot.send_message(chat_id=update.effective_chat.id, text=text, reply_markup=reply_markup)
 
-    print(f"[START] Returning START_MENU state")
     return START_MENU
 
 
 async def begin_registration_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    print(f"[BEGIN_REG_CALLBACK] Inline button pressed by user {update.effective_user.id}")
     query = update.callback_query
     await query.answer()
 
-    # Remove reply keyboard if present and show typing
     await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
@@ -116,22 +112,16 @@ async def begin_registration_callback(update: Update, context: ContextTypes.DEFA
         )
     )
 
-    print(f"[BEGIN_REG_CALLBACK] Returning FULLNAME state")
     return FULLNAME
 
 
 async def handle_broadcast_qatnashish(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Before START_MENU: any message (including button) shows the Start menu. Keyboard remains."""
-    msg_text = update.message.text if update.message else "None"
-    print(f"[ENTRY_POINT] handle_broadcast_qatnashish called, message: {msg_text}")
     return await start(update, context)
 
 
 async def startmenu_catch_all(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # At Start menu: any message immediately starts registration and removes keyboard
-    msg_text = update.message.text if update.message else "None"
-    print(f"[STARTMENU_CATCH_ALL] Called in START_MENU state, message: {msg_text}")
-    
+    """At Start menu: any message immediately starts registration and removes keyboard."""
     if update.message:
         await update.message.chat.send_action(action="typing")
         await update.message.reply_text("✅", reply_markup=ReplyKeyboardRemove())
@@ -141,12 +131,10 @@ async def startmenu_catch_all(update: Update, context: ContextTypes.DEFAULT_TYPE
             "(Masalan: Ibragimov Samandar Iskandar o'g'li)"
         )
     
-    print(f"[STARTMENU_CATCH_ALL] Returning FULLNAME state")
     return FULLNAME
 
 
 async def fullname(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    print(f"[FULLNAME] Called in FULLNAME state")
     if update.message.document or update.message.photo or update.message.video or update.message.audio or update.message.voice or update.message.sticker:
         await update.message.reply_text(
             "❌ Iltimos, faqat <b>matn</b> kiriting!\n\n"
@@ -607,6 +595,7 @@ async def broadcast_previous_users(application: Application):
             "<b>👋 Assalomu alaykum!</b>\n\n"
             "<b>⚡️ Vatandoshlar jamoat fondi yangi tanlov e'lon qildi.</b>\n\n"
             "<b>✨ Qatnashish va batafsil ma'lumot olish uchun /start yoki qatnashish tugmasini bosing</b>"
+            "<em>\n\n⚠ Ushbu xabar hammaga avtomatik tarzda yuborildi. Agar siz ro'yxatdan o'tib bo'lgan bo'lsangiz, ushbu xabarni e'tiborsiz qoldiring.</em>"
         )
         reply_kb = ReplyKeyboardMarkup([[KeyboardButton("✅ Qatnashish")]], resize_keyboard=True)
 
@@ -634,7 +623,20 @@ async def broadcast_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     
     total_users = len(set(u.get('user_id') for u in registered_users if u.get('user_id')))
-    progress_msg = await update.message.reply_text(f"⏳ Broadcast boshlanmoqda...\n0 / {total_users}")
+    
+    # Animated progress bar
+    def get_progress_bar(current, total, length=10):
+        filled = int((current / total) * length) if total > 0 else 0
+        bar = "█" * filled + "░" * (length - filled)
+        percent = int((current / total) * 100) if total > 0 else 0
+        return f"{bar} {percent}%"
+    
+    progress_msg = await update.message.reply_text(
+        f"🚀 <b>Broadcast boshlanmoqda...</b>\n\n"
+        f"{get_progress_bar(0, total_users)}\n"
+        f"Yuborildi: 0 / {total_users}",
+        parse_mode='HTML'
+    )
     
     # Track progress
     sent = 0
@@ -643,6 +645,7 @@ async def broadcast_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "<b>👋 Assalomu alaykum!</b>\n\n"
         "<b>⚡️ Vatandoshlar jamoat fondi yangi tanlov e'lon qildi.</b>\n\n"
         "<b>✨ Qatnashish va batafsil ma'lumot olish uchun /start yoki qatnashish tugmasini bosing</b>"
+        "<em>\n\n⚠ Ushbu xabar hammaga avtomatik tarzda yuborildi. Agar siz ro'yxatdan o'tib bo'lgan bo'lsangiz, ushbu xabarni e'tiborsiz qoldiring.</em>"
     )
     reply_kb = ReplyKeyboardMarkup([[KeyboardButton("✅ Qatnashish")]], resize_keyboard=True)
     
@@ -654,13 +657,24 @@ async def broadcast_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
             await context.application.bot.send_message(chat_id=user_id_val, text=text, reply_markup=reply_kb, parse_mode='HTML')
             sent += 1
-            # Update progress every 5 users
-            if sent % 5 == 0:
-                await progress_msg.edit_text(f"⏳ Broadcast boshlanmoqda...\n{sent} / {total_users}")
+            # Update progress every 3 users with animated bar
+            if sent % 3 == 0 or sent == total_users:
+                await progress_msg.edit_text(
+                    f"🚀 <b>Broadcast boshlanmoqda...</b>\n\n"
+                    f"{get_progress_bar(sent, total_users)}\n"
+                    f"Yuborildi: {sent} / {total_users}",
+                    parse_mode='HTML'
+                )
         except Exception as send_err:
             print(f"Broadcast failed for {user_id_val}: {send_err}")
     
-    await progress_msg.edit_text(f"✅ Broadcast yuborildi. Jami: {sent} ta foydalanuvchi")
+    await progress_msg.edit_text(
+        f"✅ <b>Broadcast tugadi!</b>\n\n"
+        f"{get_progress_bar(sent, total_users)}\n"
+        f"Jami yuborildi: <b>{sent}</b> ta foydalanuvchi\n"
+        f"Xatoliklar: <b>{total_users - sent}</b> ta",
+        parse_mode='HTML'
+    )
 
 
 async def approve_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -692,7 +706,11 @@ async def export_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     try:
         await update.message.chat.send_action(action="upload_document")
-        await update.message.reply_text("⏳ Excel fayli tayyorlanmoqda...")
+        progress_msg = await update.message.reply_text(
+            "📊 <b>Excel tayyorlanmoqda...</b>\n\n"
+            "▱▱▱▱▱▱▱▱▱▱ 0%",
+            parse_mode='HTML'
+        )
         print("Excel yaratish boshlandi...")
 
         wb = openpyxl.Workbook()
@@ -711,7 +729,7 @@ async def export_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
         headers = [
-            "№", "F.I.Sh", "Davlat", "Shahar/Tuman", "Tug'ilgan sana", "Telefon",
+            "№", "Telegram ID", "F.I.Sh", "Davlat", "Shahar/Tuman", "Tug'ilgan sana", "Telefon",
             "Ish joyi", "Mutaxassislik", "Ma'lumot", "Nominatsiya",
             "Telegram", "Ro'yxatdan o'tgan vaqt", "Ijodiy ish"
         ]
@@ -725,12 +743,19 @@ async def export_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             cell.border = thin_border
 
         print("Sarlavhalar yozildi...")
+        
+        await progress_msg.edit_text(
+            "📊 <b>Excel tayyorlanmoqda...</b>\n\n"
+            "███▱▱▱▱▱▱▱ 30%\nMa'lumotlar yozilmoqda...",
+            parse_mode='HTML'
+        )
 
         for row_num, user in enumerate(registered_users, 2):
             work_link = user.get('message_link', 'Link yo\'q')
 
             data = [
                 row_num - 1,
+                user.get('user_id', ''),
                 user['fullname'],
                 user['country'],
                 user.get('city', ''),
@@ -756,8 +781,14 @@ async def export_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     cell.style = "Hyperlink"
 
         print("Ma'lumotlar yozildi...")
+        
+        await progress_msg.edit_text(
+            "📊 <b>Excel tayyorlanmoqda...</b>\n\n"
+            "███████▱▱▱ 70%\nFormatlash...",
+            parse_mode='HTML'
+        )
 
-        column_widths = [5, 25, 15, 15, 15, 15, 25, 20, 25, 30, 15, 20, 50]
+        column_widths = [5, 12, 25, 15, 15, 15, 15, 25, 20, 25, 30, 15, 20, 50]
         for col_num, width in enumerate(column_widths, 1):
             ws.column_dimensions[openpyxl.utils.get_column_letter(col_num)].width = width
 
@@ -768,6 +799,12 @@ async def export_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         excel_filename = f"royxat_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
         wb.save(excel_filename)
         print(f"Excel fayl saqlandi: {excel_filename}")
+        
+        await progress_msg.edit_text(
+            "📊 <b>Excel tayyorlanmoqda...</b>\n\n"
+            "██████████ 100%\nYuborilmoqda...",
+            parse_mode='HTML'
+        )
 
         with open(excel_filename, 'rb') as excel_file:
             await update.message.reply_document(
@@ -776,6 +813,7 @@ async def export_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 filename=excel_filename
             )
 
+        await progress_msg.delete()
         print("Excel yuborildi!")
         os.remove(excel_filename)
         print("Excel fayl o'chirildi")
@@ -836,6 +874,53 @@ async def get_chat_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"ID ni nusxalash uchun bosing ☝️",
         parse_mode='HTML'
     )
+
+
+async def userid_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Admin command to get user info by Telegram ID."""
+    user_id = str(update.effective_user.id)
+    if user_id != ADMIN_CHAT_ID:
+        await update.message.reply_text("❌ Sizda ruxsat yo'q!")
+        return
+
+    if not context.args or len(context.args) == 0:
+        await update.message.reply_text(
+            "ℹ️ Foydalanish: /userid <telegram_id>\n"
+            "Masalan: /userid 123456789"
+        )
+        return
+
+    search_id = context.args[0]
+    
+    # Search for user
+    found_users = [u for u in registered_users if str(u.get('user_id')) == search_id]
+    
+    if not found_users:
+        await update.message.reply_text(f"❌ Telegram ID {search_id} topilmadi.")
+        return
+    
+    # Show all registrations for this user
+    await update.message.reply_text(f"🔍 Topilgan foydalanuvchilar: {len(found_users)} ta")
+    
+    for idx, user in enumerate(found_users, 1):
+        work_link = user.get('message_link', 'Link yo\'q')
+        text = (
+            f"📋 <b>Ro'yxat #{idx}</b>\n\n"
+            f"🆔 <b>Telegram ID:</b> <code>{user.get('user_id', '')}</code>\n"
+            f"👤 <b>F.I.Sh:</b> {user.get('fullname', '')}\n"
+            f"🌍 <b>Davlat:</b> {user.get('country', '')}\n"
+            f"🏙️ <b>Shahar/Tuman:</b> {user.get('city', '')}\n"
+            f"🎂 <b>Tug'ilgan sana:</b> {user.get('birthdate', '')}\n"
+            f"📱 <b>Telefon:</b> {user.get('phone', '')}\n"
+            f"📞 <b>Telegram:</b> @{user.get('username', 'yo\'q')}\n"
+            f"🏢 <b>Ish joyi:</b> {user.get('workplace', '')}\n"
+            f"💼 <b>Mutaxassislik:</b> {user.get('specialty', '')}\n"
+            f"🎓 <b>Ma'lumot:</b> {user.get('education', '')}\n"
+            f"🏆 <b>Nominatsiya:</b> {user.get('nomination', '')}\n"
+            f"⏰ <b>Ro'yxatdan o'tgan vaqt:</b> {user.get('registration_date', '')}\n"
+            f"📎 <b>Ijodiy ish:</b> {work_link}"
+        )
+        await update.message.reply_text(text, parse_mode='HTML')
 
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -928,6 +1013,7 @@ def main():
     application.add_handler(CommandHandler('export', export_command))
     application.add_handler(CommandHandler('chatid', get_chat_id))
     application.add_handler(CommandHandler('broadcast', broadcast_command))
+    application.add_handler(CommandHandler('userid', userid_command))
     application.add_handler(CallbackQueryHandler(approve_callback, pattern='^approve_'))
     application.add_handler(CallbackQueryHandler(reject_callback, pattern='^reject_'))
 
