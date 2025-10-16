@@ -65,6 +65,7 @@ def save_data():
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    print(f"[START] Called by user {update.effective_user.id}")
     context.user_data.clear()
 
     text = (
@@ -90,10 +91,12 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # In case /start is triggered from a callback or other update types
         await context.bot.send_message(chat_id=update.effective_chat.id, text=text, reply_markup=reply_markup)
 
+    print(f"[START] Returning START_MENU state")
     return START_MENU
 
 
 async def begin_registration_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    print(f"[BEGIN_REG_CALLBACK] Inline button pressed by user {update.effective_user.id}")
     query = update.callback_query
     await query.answer()
 
@@ -113,16 +116,22 @@ async def begin_registration_callback(update: Update, context: ContextTypes.DEFA
         )
     )
 
+    print(f"[BEGIN_REG_CALLBACK] Returning FULLNAME state")
     return FULLNAME
 
 
 async def handle_broadcast_qatnashish(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Before START_MENU: any message (including button) shows the Start menu. Keyboard remains."""
+    msg_text = update.message.text if update.message else "None"
+    print(f"[ENTRY_POINT] handle_broadcast_qatnashish called, message: {msg_text}")
     return await start(update, context)
 
 
 async def startmenu_catch_all(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # At Start menu: any message immediately starts registration and removes keyboard
+    msg_text = update.message.text if update.message else "None"
+    print(f"[STARTMENU_CATCH_ALL] Called in START_MENU state, message: {msg_text}")
+    
     if update.message:
         await update.message.chat.send_action(action="typing")
         await update.message.reply_text("✅", reply_markup=ReplyKeyboardRemove())
@@ -131,10 +140,13 @@ async def startmenu_catch_all(update: Update, context: ContextTypes.DEFAULT_TYPE
             "📝 Iltimos, ismingiz, familiyangiz va sharifingizni kiriting:\n"
             "(Masalan: Ibragimov Samandar Iskandar o'g'li)"
         )
+    
+    print(f"[STARTMENU_CATCH_ALL] Returning FULLNAME state")
     return FULLNAME
 
 
 async def fullname(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    print(f"[FULLNAME] Called in FULLNAME state")
     if update.message.document or update.message.photo or update.message.video or update.message.audio or update.message.voice or update.message.sticker:
         await update.message.reply_text(
             "❌ Iltimos, faqat <b>matn</b> kiriting!\n\n"
