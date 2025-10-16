@@ -170,7 +170,15 @@ async def handle_forwarded_message(update: Update, context: ContextTypes.DEFAULT
     print(f"🔍 Admin ID: {ADMIN_CHAT_ID}")
     print(f"🔍 Message type: {type(update.message)}")
     print(f"🔍 Message text: {update.message.text or 'No text'}")
-    print(f"🔍 Forwarded: {update.message.forward_from is not None}")
+    
+    # Safely check if message is forwarded
+    is_forwarded = False
+    try:
+        is_forwarded = hasattr(update.message, 'forward_from') and update.message.forward_from is not None
+        print(f"🔍 Forwarded: {is_forwarded}")
+    except Exception as e:
+        print(f"🔍 Error checking forward status: {e}")
+        is_forwarded = False
     
     # Check if message is from admin
     if user_id != ADMIN_CHAT_ID:
@@ -180,24 +188,28 @@ async def handle_forwarded_message(update: Update, context: ContextTypes.DEFAULT
     print(f"🔍 Message from admin, checking if forwarded...")
     
     # Check if message is forwarded
-    if not update.message.forward_from:
+    if not is_forwarded:
         print(f"🔍 Not a forwarded message - sending debug info")
         # Send debug info for non-forwarded messages
         await update.message.reply_text(
             f"🔍 <b>Debug Info:</b>\n\n"
             f"👤 Sender ID: {user_id}\n"
             f"📝 Message Type: {type(update.message)}\n"
-            f"🔄 Forwarded: {update.message.forward_from is not None}\n"
+            f"🔄 Forwarded: {is_forwarded}\n"
             f"📨 Text: {update.message.text or 'No text'}",
             parse_mode='HTML'
         )
         return
     
     print(f"🔍 ✅ FORWARDED MESSAGE DETECTED!")
-    print(f"🔍 Forwarded from user: {update.message.forward_from.id}")
-    print(f"🔍 Forwarded from chat: {update.message.forward_from_chat}")
-    print(f"🔍 Forwarded user name: {update.message.forward_from.first_name} {update.message.forward_from.last_name}")
-    print(f"🔍 Forwarded user username: {update.message.forward_from.username}")
+    try:
+        print(f"🔍 Forwarded from user: {update.message.forward_from.id}")
+        print(f"🔍 Forwarded from chat: {update.message.forward_from_chat}")
+        print(f"🔍 Forwarded user name: {update.message.forward_from.first_name} {update.message.forward_from.last_name}")
+        print(f"🔍 Forwarded user username: {update.message.forward_from.username}")
+    except Exception as e:
+        print(f"🔍 Error getting forwarded user info: {e}")
+        return
     
     try:
         # Reload data to get latest users
