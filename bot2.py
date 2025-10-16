@@ -21,7 +21,7 @@ GROUP_ID = os.getenv('GROUP_ID', '-1002930763309')
  SPECIALTY, EDUCATION, NOMINATION, CREATIVE_WORK) = range(11)
 
 # Ma'lumotlar fayli
-DATA_FILE = 'registered_users.json'
+DATA_FILE = 'registered_users_bot2.json'
 
 # Global ma'lumotlar
 registered_users = []
