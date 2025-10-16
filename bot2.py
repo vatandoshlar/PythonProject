@@ -142,7 +142,7 @@ async def send_reminder_to_incomplete_users():
                     f"🔄 Keyingi qadam: {next_step}\n\n"
                     f"📅 Oxirgi yangilanish: {last_updated}\n\n"
                     f"✅ Ro'yxatdan o'tishni yakunlash uchun /start ni bosing va jarayonni davom eting.\n\n"
-                    f"❓ Yordam kerak bo'lsa, admin bilan bog'laning."
+                    f"❓ Yordam kerak bo'lsa, admin bilan bog'laning: @L19671"
                 )
                 
                 # Send reminder message
@@ -848,6 +848,8 @@ async def export_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"❌ Sizda ruxsat yo'q!")
         return
 
+    # Reload data from file to get latest users
+    load_data()
     print(f"Ro'yxatdan o'tganlar soni: {len(registered_users)}")
 
     if not registered_users:
@@ -1051,6 +1053,8 @@ async def reminder_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     try:
+        # Reload data from file to get latest users
+        load_data()
         incomplete_users = [u for u in registered_users if u.get('registration_status') == 'incomplete']
         
         if not incomplete_users:
@@ -1094,7 +1098,7 @@ async def reminder_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     f"🔄 Keyingi qadam: {next_step}\n\n"
                     f"📅 Oxirgi yangilanish: {last_updated}\n\n"
                     f"✅ Ro'yxatdan o'tishni yakunlash uchun /start ni bosing va jarayonni davom eting.\n\n"
-                    f"❓ Yordam kerak bo'lsa, admin bilan bog'laning."
+                    f"❓ Yordam kerak bo'lsa, admin bilan bog'laning: @L19671"
                 )
                 
                 # Send reminder message
