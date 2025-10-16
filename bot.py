@@ -903,7 +903,11 @@ async def userid_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"🔍 Topilgan foydalanuvchilar: {len(found_users)} ta")
     
     for idx, user in enumerate(found_users, 1):
-        work_link = user.get('message_link', 'Link yo\'q')
+        work_link = user.get('message_link', "Link yo'q")
+        username = user.get('username', '')
+        if not username:
+            username = "yo'q"
+        
         text = (
             f"📋 <b>Ro'yxat #{idx}</b>\n\n"
             f"🆔 <b>Telegram ID:</b> <code>{user.get('user_id', '')}</code>\n"
@@ -912,7 +916,7 @@ async def userid_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"🏙️ <b>Shahar/Tuman:</b> {user.get('city', '')}\n"
             f"🎂 <b>Tug'ilgan sana:</b> {user.get('birthdate', '')}\n"
             f"📱 <b>Telefon:</b> {user.get('phone', '')}\n"
-            f"📞 <b>Telegram:</b> @{user.get('username', 'yo\'q')}\n"
+            f"📞 <b>Telegram:</b> @{username}\n"
             f"🏢 <b>Ish joyi:</b> {user.get('workplace', '')}\n"
             f"💼 <b>Mutaxassislik:</b> {user.get('specialty', '')}\n"
             f"🎓 <b>Ma'lumot:</b> {user.get('education', '')}\n"
