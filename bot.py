@@ -5,14 +5,14 @@ import os
 import json
 import re
 from datetime import datetime
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler, ContextTypes, filters, \
     ConversationHandler
 import openpyxl
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 
 # Bot konfiguratsiyasi
-BOT_TOKEN = os.getenv('BOT_TOKEN', '7729290828:AAFJl5pxtdnyvA6czTtcDQ3iexVq_Fd7_o0')
+BOT_TOKEN = os.getenv('BOT_TOKEN', '8306737061:AAHXs3HSPQC3BrXEQfdygirhAlNkNVZy1oc')
 ADMIN_CHAT_ID = os.getenv('ADMIN_CHAT_ID', '7605860772')
 GROUP_ID = os.getenv('GROUP_ID', '-1002930763309')
 
@@ -557,6 +557,32 @@ async def send_to_admin(context: ContextTypes.DEFAULT_TYPE, user_info: dict):
         traceback.print_exc()
 
 
+async def broadcast_previous_users(application: Application):
+    """Send a broadcast message to all previously registered users (by user_id)."""
+    try:
+        if not registered_users:
+            return
+
+        seen = set()
+        text = (
+            "Assalomu alaykum!\n"
+            "Vatandoshlar jamoat fondi yangi tanlov e'lon qildi. Qatnashish uchun /start ni bosing"
+        )
+        reply_kb = ReplyKeyboardMarkup([[KeyboardButton("Qatnashish")]], resize_keyboard=True)
+
+        for user in registered_users:
+            user_id = user.get('user_id')
+            if not user_id or user_id in seen:
+                continue
+            seen.add(user_id)
+            try:
+                await application.bot.send_message(chat_id=user_id, text=text, reply_markup=reply_kb)
+            except Exception as send_err:
+                print(f"Broadcast failed for {user_id}: {send_err}")
+    except Exception as e:
+        print(f"Broadcast error: {e}")
+
+
 async def approve_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer("✅ Tasdiqlandi!")
@@ -750,6 +776,7 @@ def main():
         states={
             START_MENU: [
                 CommandHandler('start', start),
+                MessageHandler(filters.Regex('^Qatnashish$'), start),
                 CallbackQueryHandler(begin_registration_callback, pattern='^begin_reg$')
             ],
             FULLNAME: [
@@ -814,6 +841,8 @@ def main():
     application.add_handler(CallbackQueryHandler(reject_callback, pattern='^reject_'))
 
     print("✅ Bot muvaffaqiyatli ishga tushdi!")
+    # Schedule broadcast after startup
+    application.job_queue.run_once(lambda ctx: application.create_task(broadcast_previous_users(application)), when=2)
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 
