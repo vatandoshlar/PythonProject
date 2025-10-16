@@ -931,17 +931,17 @@ async def export_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         for i, user in enumerate(registered_users, 1):
             work_link = user.get('message_link', 'Link yo\'q')
 
-            export_text += f"{i}. 👤 {user['fullname']}\n"
-            export_text += f"   🌍 Davlat: {user['country']}\n"
+            export_text += f"{i}. 👤 {user.get('fullname', '')}\n"
+            export_text += f"   🌍 Davlat: {user.get('country', '')}\n"
             export_text += f"   🏙️ Shahar/Tuman: {user.get('city', '')}\n"
-            export_text += f"   📅 Tug'ilgan sana: {user['birthdate']}\n"
+            export_text += f"   📅 Tug'ilgan sana: {user.get('birthdate', '')}\n"
             export_text += f"   📱 Telefon: {user.get('phone', '')}\n"
-            export_text += f"   🏢 Ish joyi: {user['workplace']}\n"
-            export_text += f"   💼 Mutaxassislik: {user['specialty']}\n"
-            export_text += f"   🎓 Ma'lumot: {user['education']}\n"
-            export_text += f"   🏆 Nominatsiya: {user['nomination']}\n"
-            export_text += f"   📞 Telegram: @{user['username']}\n"
-            export_text += f"   ⏰ Vaqt: {user['registration_date']}\n"
+            export_text += f"   🏢 Ish joyi: {user.get('workplace', '')}\n"
+            export_text += f"   💼 Mutaxassislik: {user.get('specialty', '')}\n"
+            export_text += f"   🎓 Ma'lumot: {user.get('education', '')}\n"
+            export_text += f"   🏆 Nominatsiya: {user.get('nomination', '')}\n"
+            export_text += f"   📞 Telegram: @{user.get('username', '')}\n"
+            export_text += f"   ⏰ Vaqt: {user.get('registration_date', user.get('last_updated', ''))}\n"
             export_text += f"   📎 Ijodiy ish: {work_link}\n"
             export_text += "   " + "-" * 35 + "\n\n"
 
