@@ -66,7 +66,6 @@ def save_data():
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
-    print(f"DEBUG: start() called")
 
     text = (
         "👋 Assalomu alaykum!\n\n"
@@ -91,7 +90,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # In case /start is triggered from a callback or other update types
         await context.bot.send_message(chat_id=update.effective_chat.id, text=text, reply_markup=reply_markup)
 
-    print(f"DEBUG: Returning START_MENU state")
     return START_MENU
 
 
@@ -125,7 +123,6 @@ async def handle_broadcast_qatnashish(update: Update, context: ContextTypes.DEFA
 
 async def startmenu_catch_all(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # At Start menu: any message immediately starts registration and removes keyboard
-    print(f"DEBUG: startmenu_catch_all called! Message: {update.message.text if update.message else 'No message'}")
     if update.message:
         await update.message.chat.send_action(action="typing")
         await update.message.reply_text("✅", reply_markup=ReplyKeyboardRemove())
@@ -134,7 +131,6 @@ async def startmenu_catch_all(update: Update, context: ContextTypes.DEFAULT_TYPE
             "📝 Iltimos, ismingiz, familiyangiz va sharifingizni kiriting:\n"
             "(Masalan: Ibragimov Samandar Iskandar o'g'li)"
         )
-    print(f"DEBUG: Returning FULLNAME state")
     return FULLNAME
 
 
@@ -852,10 +848,11 @@ def main():
         ],
         states={
             START_MENU: [
-                CommandHandler('start', start),
                 # At Start menu: any message (including button) begins registration
                 MessageHandler(filters.ALL & ~filters.COMMAND, startmenu_catch_all),
-                CallbackQueryHandler(begin_registration_callback, pattern='^begin_reg$')
+                CallbackQueryHandler(begin_registration_callback, pattern='^begin_reg$'),
+                # Allow restart with /start
+                CommandHandler('start', start),
             ],
             FULLNAME: [
                 CommandHandler('start', start),
