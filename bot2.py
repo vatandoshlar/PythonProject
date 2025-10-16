@@ -174,8 +174,28 @@ async def handle_forwarded_message(update: Update, context: ContextTypes.DEFAULT
     # Safely check if message is forwarded
     is_forwarded = False
     try:
-        is_forwarded = hasattr(update.message, 'forward_from') and update.message.forward_from is not None
+        # Check multiple ways to detect forwarded messages
+        has_forward_from = hasattr(update.message, 'forward_from') and update.message.forward_from is not None
+        has_forward_from_chat = hasattr(update.message, 'forward_from_chat') and update.message.forward_from_chat is not None
+        has_forward_sender_name = hasattr(update.message, 'forward_sender_name') and update.message.forward_sender_name is not None
+        has_forward_date = hasattr(update.message, 'forward_date') and update.message.forward_date is not None
+        
+        is_forwarded = has_forward_from or has_forward_from_chat or has_forward_sender_name or has_forward_date
+        
         print(f"🔍 Forwarded: {is_forwarded}")
+        print(f"🔍 has_forward_from: {has_forward_from}")
+        print(f"🔍 has_forward_from_chat: {has_forward_from_chat}")
+        print(f"🔍 has_forward_sender_name: {has_forward_sender_name}")
+        print(f"🔍 has_forward_date: {has_forward_date}")
+        
+        # Print all available attributes
+        forward_attrs = [attr for attr in dir(update.message) if 'forward' in attr.lower()]
+        print(f"🔍 Available forward attributes: {forward_attrs}")
+        
+        # Print all message attributes for debugging
+        all_attrs = [attr for attr in dir(update.message) if not attr.startswith('_')]
+        print(f"🔍 All message attributes: {all_attrs}")
+        
     except Exception as e:
         print(f"🔍 Error checking forward status: {e}")
         is_forwarded = False
