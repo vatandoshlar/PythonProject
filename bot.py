@@ -194,7 +194,7 @@ async def handle_forwarded_message(update: Update, context: ContextTypes.DEFAULT
         await update.message.reply_text(
             f"🔍 <b>Debug Info:</b>\n\n"
             f"👤 Sender ID: {user_id}\n"
-            f"📝 Message Type: {type(update.message)}\n"
+            f"📝 Message Type: Message\n"
             f"🔄 Forwarded: {is_forwarded}\n"
             f"📨 Text: {update.message.text or 'No text'}",
             parse_mode='HTML'
