@@ -1,0 +1,42 @@
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Data files (contains user data - should not be committed)
+registered_users.json
+registered_users_bot2.json
+
+# Backup files
+backup_*.json
+*_backup.json
+
+# Log files
+*.log
+logs/
+
+# Environment variables
+.env
+.env.local
+
+# Temporary files
+*.tmp
+*.temp
