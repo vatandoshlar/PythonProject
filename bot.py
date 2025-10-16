@@ -126,8 +126,20 @@ async def handle_startmenu_qatnashish(update: Update, context: ContextTypes.DEFA
 
 
 async def pre_registration_catch_all(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Any other message at the initial menu should re-show the Start menu (useful after broadcasts)
+    # Before Start menu is shown, any message re-shows the Start menu (useful after broadcasts)
     return await start(update, context)
+
+
+async def startmenu_catch_all(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # At Start menu: any message immediately starts registration and removes keyboard
+    if update.message:
+        await update.message.reply_text("✅", reply_markup=ReplyKeyboardRemove())
+        await update.message.reply_text(
+            "Ro'yxatdan o'tish uchun quyidagi ma'lumotlarni to'ldiring.\n\n"
+            "📝 Iltimos, ismingiz, familiyangiz va sharifingizni kiriting:\n"
+            "(Masalan: Ibragimov Samandar Iskandar o'g'li)"
+        )
+    return FULLNAME
 
 
 async def fullname(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -614,9 +626,35 @@ async def broadcast_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if user_id != ADMIN_CHAT_ID:
         await update.message.reply_text("❌ Sizda ruxsat yo'q!")
         return
-    await update.message.reply_text("⏳ Broadcast boshlanmoqda...")
-    count = await broadcast_previous_users(context.application)
-    await update.message.reply_text(f"✅ Broadcast yuborildi. Jami: {count} ta foydalanuvchi")
+    
+    total_users = len(set(u.get('user_id') for u in registered_users if u.get('user_id')))
+    progress_msg = await update.message.reply_text(f"⏳ Broadcast boshlanmoqda...\n0 / {total_users}")
+    
+    # Track progress
+    sent = 0
+    seen = set()
+    text = (
+        "<b>👋 Assalomu alaykum!</b>\n\n"
+        "<b>⚡️ Vatandoshlar jamoat fondi yangi tanlov e'lon qildi.</b>\n\n"
+        "<b>✨ Qatnashish va batafsil ma'lumot olish uchun /start yoki qatnashish tugmasini bosing</b>"
+    )
+    reply_kb = ReplyKeyboardMarkup([[KeyboardButton("✅ Qatnashish")]], resize_keyboard=True)
+    
+    for user in registered_users:
+        user_id_val = user.get('user_id')
+        if not user_id_val or user_id_val in seen:
+            continue
+        seen.add(user_id_val)
+        try:
+            await context.application.bot.send_message(chat_id=user_id_val, text=text, reply_markup=reply_kb, parse_mode='HTML')
+            sent += 1
+            # Update progress every 5 users
+            if sent % 5 == 0:
+                await progress_msg.edit_text(f"⏳ Broadcast boshlanmoqda...\n{sent} / {total_users}")
+        except Exception as send_err:
+            print(f"Broadcast failed for {user_id_val}: {send_err}")
+    
+    await progress_msg.edit_text(f"✅ Broadcast yuborildi. Jami: {sent} ta foydalanuvchi")
 
 
 async def approve_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -819,7 +857,8 @@ def main():
                 CommandHandler('start', start),
                 # At Start menu: pressing button should begin registration and remove keyboard
                 MessageHandler(filters.Regex('^✅?\s*Qatnashish$'), handle_startmenu_qatnashish),
-                MessageHandler(filters.ALL & ~filters.COMMAND, pre_registration_catch_all),
+                # Any other message also begins registration
+                MessageHandler(filters.ALL & ~filters.COMMAND, startmenu_catch_all),
                 CallbackQueryHandler(begin_registration_callback, pattern='^begin_reg$')
             ],
             FULLNAME: [
