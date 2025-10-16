@@ -97,6 +97,13 @@ async def begin_registration_callback(update: Update, context: ContextTypes.DEFA
     query = update.callback_query
     await query.answer()
 
+    # Remove reply keyboard if present and show typing
+    await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text="✅",
+        reply_markup=ReplyKeyboardRemove()
+    )
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text=(
@@ -117,6 +124,7 @@ async def handle_broadcast_qatnashish(update: Update, context: ContextTypes.DEFA
 async def startmenu_catch_all(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # At Start menu: any message immediately starts registration and removes keyboard
     if update.message:
+        await update.message.chat.send_action(action="typing")
         await update.message.reply_text("✅", reply_markup=ReplyKeyboardRemove())
         await update.message.reply_text(
             "Ro'yxatdan o'tish uchun quyidagi ma'lumotlarni to'ldiring.\n\n"
@@ -480,12 +488,14 @@ async def creative_work(update: Update, context: ContextTypes.DEFAULT_TYPE):
             caption=f"📄 Hujjat: {file_info['file_name']}"
         )
 
+    # Show typing while sending to admin
+    await update.message.chat.send_action(action="typing")
+    await send_to_admin(context, user_info)
+    
     await update.message.reply_text(
         "✅ Ma'lumotlaringiz administratorga yuborildi.\n"
         "Rahmat! 🙏"
     )
-
-    await send_to_admin(context, user_info)
     return ConversationHandler.END
 
 
@@ -669,6 +679,7 @@ async def export_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     try:
+        await update.message.chat.send_action(action="upload_document")
         await update.message.reply_text("⏳ Excel fayli tayyorlanmoqda...")
         print("Excel yaratish boshlandi...")
 
