@@ -938,6 +938,33 @@ async def userid_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text += f"\n\n⚠️ <i>Bu foydalanuvchi {len(found_users)} marta ro'yxatdan o'tgan</i>"
     
     await update.message.reply_text(text, parse_mode='HTML')
+    
+    # Send the user's creative work file if it exists
+    file_info = user.get('file')
+    if file_info and file_info.get('file_id'):
+        try:
+            await update.message.chat.send_action(action="upload_document")
+            
+            if file_info.get('file_type') == 'video':
+                await context.bot.send_video(
+                    chat_id=update.effective_chat.id,
+                    video=file_info['file_id'],
+                    caption=f"🎥 Ijodiy ish: {file_info.get('file_name', 'video')}"
+                )
+            elif file_info.get('file_type') == 'audio':
+                await context.bot.send_audio(
+                    chat_id=update.effective_chat.id,
+                    audio=file_info['file_id'],
+                    caption=f"🎵 Ijodiy ish: {file_info.get('file_name', 'audio')}"
+                )
+            else:
+                await context.bot.send_document(
+                    chat_id=update.effective_chat.id,
+                    document=file_info['file_id'],
+                    caption=f"📄 Ijodiy ish: {file_info.get('file_name', 'document')}"
+                )
+        except Exception as e:
+            await update.message.reply_text(f"⚠️ Ijodiy ishni yuklashda xatolik: {str(e)}")
 
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
