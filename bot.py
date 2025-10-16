@@ -565,10 +565,11 @@ async def broadcast_previous_users(application: Application):
 
         seen = set()
         text = (
-            "Assalomu alaykum!\n"
-            "Vatandoshlar jamoat fondi yangi tanlov e'lon qildi. Qatnashish uchun /start ni bosing"
+            "<b>👋 Assalomu alaykum!</b>\n\n"
+            "<b>⚡️ Vatandoshlar jamoat fondi yangi tanlov e'lon qildi.</b>\n\n"
+            "<b>✨ Qatnashish va batafsil ma'lumot olish uchun /start yoki qatnashish tugmasini bosing</b>"
         )
-        reply_kb = ReplyKeyboardMarkup([[KeyboardButton("Qatnashish")]], resize_keyboard=True)
+        reply_kb = ReplyKeyboardMarkup([[KeyboardButton("✅ Qatnashish")]], resize_keyboard=True)
 
         for user in registered_users:
             user_id = user.get('user_id')
@@ -576,7 +577,7 @@ async def broadcast_previous_users(application: Application):
                 continue
             seen.add(user_id)
             try:
-                await application.bot.send_message(chat_id=user_id, text=text, reply_markup=reply_kb)
+                await application.bot.send_message(chat_id=user_id, text=text, reply_markup=reply_kb, parse_mode='HTML')
             except Exception as send_err:
                 print(f"Broadcast failed for {user_id}: {send_err}")
     except Exception as e:
@@ -787,7 +788,7 @@ def main():
         states={
             START_MENU: [
                 CommandHandler('start', start),
-                MessageHandler(filters.Regex('^Qatnashish$'), start),
+                MessageHandler(filters.Regex('^✅ Qatnashish$'), start),
                 CallbackQueryHandler(begin_registration_callback, pattern='^begin_reg$')
             ],
             FULLNAME: [
