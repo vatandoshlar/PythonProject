@@ -1,0 +1,26 @@
+[
+  {
+    "user_id": 123456789,
+    "username": "sample_user",
+    "first_name": "Sample",
+    "last_name": "User",
+    "language_code": "en",
+    "registration_date": "01.01.2025 00:00:00",
+    "registration_status": "complete",
+    "completion_date": "01.01.2025 00:00:00",
+    "fullname": "Sample User Name",
+    "country": "Uzbekistan",
+    "city": "Tashkent",
+    "birthdate": "01.01.1990",
+    "phone": "+998901234567",
+    "workplace": "Sample Workplace",
+    "specialty": "Sample Specialty",
+    "education": "Oliy ta'lim (Bakalavr)",
+    "nomination": "Eng yaxshi insho",
+    "file": {
+      "file_id": "sample_file_id",
+      "file_type": "document",
+      "file_name": "sample.pdf"
+    }
+  }
+]
