@@ -110,23 +110,7 @@ async def begin_registration_callback(update: Update, context: ContextTypes.DEFA
 
 
 async def handle_broadcast_qatnashish(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """User pressed reply keyboard after broadcast. Show Start menu; keep keyboard for now."""
-    return await start(update, context)
-
-
-async def handle_startmenu_qatnashish(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """At Start menu, pressing Qatnashish begins registration and removes keyboard when asking name."""
-    await update.message.reply_text("✅", reply_markup=ReplyKeyboardRemove())
-    await update.message.reply_text(
-        "Ro'yxatdan o'tish uchun quyidagi ma'lumotlarni to'ldiring.\n\n"
-        "📝 Iltimos, ismingiz, familiyangiz va sharifingizni kiriting:\n"
-        "(Masalan: Ibragimov Samandar Iskandar o'g'li)"
-    )
-    return FULLNAME
-
-
-async def pre_registration_catch_all(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Before Start menu is shown, any message re-shows the Start menu (useful after broadcasts)
+    """Before START_MENU: any message (including button) shows the Start menu. Keyboard remains."""
     return await start(update, context)
 
 
@@ -848,16 +832,13 @@ def main():
     conv_handler = ConversationHandler(
         entry_points=[
             CommandHandler('start', start),
-            # After broadcast: pressing reply keyboard should show Start message
-            MessageHandler(filters.Regex('^✅?\s*Qatnashish$'), handle_broadcast_qatnashish),
-            MessageHandler(filters.ALL & ~filters.COMMAND, pre_registration_catch_all),
+            # Before any state: button or message shows Start message
+            MessageHandler(filters.ALL & ~filters.COMMAND, handle_broadcast_qatnashish),
         ],
         states={
             START_MENU: [
                 CommandHandler('start', start),
-                # At Start menu: pressing button should begin registration and remove keyboard
-                MessageHandler(filters.Regex('^✅?\s*Qatnashish$'), handle_startmenu_qatnashish),
-                # Any other message also begins registration
+                # At Start menu: any message (including button) begins registration
                 MessageHandler(filters.ALL & ~filters.COMMAND, startmenu_catch_all),
                 CallbackQueryHandler(begin_registration_callback, pattern='^begin_reg$')
             ],
