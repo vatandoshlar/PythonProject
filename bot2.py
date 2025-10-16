@@ -64,6 +64,46 @@ def save_data():
         print(f"Xato: {e}")
 
 
+def save_partial_user_data(user_id, context_data, step_name):
+    """Save user data at each step, even if registration is incomplete"""
+    try:
+        # Check if user already exists in partial data
+        existing_user = None
+        for i, user in enumerate(registered_users):
+            if user.get('user_id') == user_id:
+                existing_user = i
+                break
+        
+        # Create or update user data
+        user_info = {
+            'user_id': user_id,
+            'username': context_data.get('username', "Username yo'q"),
+            'first_name': context_data.get('first_name', ""),
+            'last_name': context_data.get('last_name', ""),
+            'language_code': context_data.get('language_code', ""),
+            'last_updated': datetime.now().strftime('%d.%m.%Y %H:%M:%S'),
+            'registration_status': 'incomplete',
+            'current_step': step_name
+        }
+        
+        # Add all available data from context
+        for key, value in context_data.items():
+            if key not in ['user_id', 'username', 'first_name', 'last_name', 'language_code']:
+                user_info[key] = value
+        
+        if existing_user is not None:
+            # Update existing user
+            registered_users[existing_user] = user_info
+        else:
+            # Add new user
+            registered_users.append(user_info)
+        
+        save_data()
+        print(f"Partial data saved for user {user_id} at step: {step_name}")
+    except Exception as e:
+        print(f"Error saving partial data: {e}")
+
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
 
@@ -153,6 +193,18 @@ async def fullname(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return FULLNAME
 
     context.user_data['fullname'] = update.message.text
+    
+    # Save partial data
+    user = update.effective_user
+    context.user_data.update({
+        'user_id': user.id,
+        'username': user.username or "Username yo'q",
+        'first_name': user.first_name or "",
+        'last_name': user.last_name or "",
+        'language_code': user.language_code or ""
+    })
+    save_partial_user_data(user.id, context.user_data, 'fullname')
+    
     await update.message.reply_text("🌍 Hozirda qaysi davlatda istiqomat qilasiz?")
     return COUNTRY
 
@@ -175,6 +227,11 @@ async def country(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return COUNTRY
 
     context.user_data['country'] = update.message.text
+    
+    # Save partial data
+    user = update.effective_user
+    save_partial_user_data(user.id, context.user_data, 'country')
+    
     await update.message.reply_text("🏙️ Istiqomat qilayotgan shahar yoki tumaningizni kiriting:")
     return CITY
 
@@ -197,6 +254,11 @@ async def city(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return CITY
 
     context.user_data['city'] = update.message.text
+    
+    # Save partial data
+    user = update.effective_user
+    save_partial_user_data(user.id, context.user_data, 'city')
+    
     await update.message.reply_text(
         "📅 Tug'ilgan sanangizni kiriting (dd.mm.yyyy formatida):\n"
         "(Masalan: 04.06.1994)"
@@ -227,6 +289,11 @@ async def birthdate(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         datetime.strptime(text, '%d.%m.%Y')
         context.user_data['birthdate'] = text
+        
+        # Save partial data
+        user = update.effective_user
+        save_partial_user_data(user.id, context.user_data, 'birthdate')
+        
         await update.message.reply_text(
             "📱 Telefon raqamingizni kiriting."
         )
@@ -258,8 +325,12 @@ async def phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     phone_text = update.message.text.strip()
 
-
     context.user_data['phone'] = phone_text
+    
+    # Save partial data
+    user = update.effective_user
+    save_partial_user_data(user.id, context.user_data, 'phone')
+    
     await update.message.reply_text("🏢 Ish yoki o'qish joyingizni kiriting:")
     return WORKPLACE
 
@@ -282,6 +353,11 @@ async def workplace(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return WORKPLACE
 
     context.user_data['workplace'] = update.message.text
+    
+    # Save partial data
+    user = update.effective_user
+    save_partial_user_data(user.id, context.user_data, 'workplace')
+    
     await update.message.reply_text("💼 Mutaxassisligingizni kiriting:")
     return SPECIALTY
 
@@ -304,6 +380,10 @@ async def specialty(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return SPECIALTY
 
     context.user_data['specialty'] = update.message.text
+    
+    # Save partial data
+    user = update.effective_user
+    save_partial_user_data(user.id, context.user_data, 'specialty')
 
     keyboard = [[InlineKeyboardButton(level, callback_data=f"edu_{i}")]
                 for i, level in enumerate(EDUCATION_LEVELS)]
@@ -322,6 +402,10 @@ async def education_callback(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
     edu_index = int(query.data.split('_')[1])
     context.user_data['education'] = EDUCATION_LEVELS[edu_index]
+    
+    # Save partial data
+    user = update.effective_user
+    save_partial_user_data(user.id, context.user_data, 'education')
 
     await query.edit_message_text(f"✅ Tanlandi: {EDUCATION_LEVELS[edu_index]}")
 
@@ -351,6 +435,10 @@ async def nomination_callback(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     nom_index = int(query.data.split('_')[1])
     context.user_data['nomination'] = NOMINATIONS[nom_index]
+    
+    # Save partial data
+    user = update.effective_user
+    save_partial_user_data(user.id, context.user_data, 'nomination')
 
     await query.edit_message_text(f"✅ Tanlandi: {NOMINATIONS[nom_index]}")
 
@@ -440,6 +528,9 @@ async def creative_work(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     context.user_data['file'] = file_info
 
+    # Remove any existing partial data for this user
+    registered_users[:] = [u for u in registered_users if u.get('user_id') != user.id]
+
     user_info = {
         'user_id': user.id,
         'username': user.username or "Username yo'q",
@@ -447,6 +538,8 @@ async def creative_work(update: Update, context: ContextTypes.DEFAULT_TYPE):
         'last_name': user.last_name or "",
         'language_code': user.language_code or "",
         'registration_date': datetime.now().strftime('%d.%m.%Y %H:%M:%S'),
+        'registration_status': 'complete',
+        'completion_date': datetime.now().strftime('%d.%m.%Y %H:%M:%S')
     }
     user_info.update(context.user_data)
 
@@ -731,7 +824,7 @@ async def export_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         headers = [
             "№", "Telegram ID", "F.I.Sh", "Davlat", "Shahar/Tuman", "Tug'ilgan sana", "Telefon",
             "Ish joyi", "Mutaxassislik", "Ma'lumot", "Nominatsiya",
-            "Telegram", "Ro'yxatdan o'tgan vaqt", "Ijodiy ish"
+            "Telegram", "Holat", "Oxirgi yangilanish", "Ijodiy ish"
         ]
 
         for col_num, header in enumerate(headers, 1):
@@ -752,21 +845,27 @@ async def export_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         for row_num, user in enumerate(registered_users, 2):
             work_link = user.get('message_link', 'Link yo\'q')
+            
+            # Determine status and date
+            status = user.get('registration_status', 'complete')
+            status_text = "✅ To'liq" if status == 'complete' else f"⏳ {user.get('current_step', 'Noma\'lum')}"
+            date_field = user.get('completion_date', user.get('last_updated', user.get('registration_date', '')))
 
             data = [
                 row_num - 1,
                 user.get('user_id', ''),
-                user['fullname'],
-                user['country'],
+                user.get('fullname', ''),
+                user.get('country', ''),
                 user.get('city', ''),
-                user['birthdate'],
+                user.get('birthdate', ''),
                 user.get('phone', ''),
-                user['workplace'],
-                user['specialty'],
-                user['education'],
-                user['nomination'],
-                f"@{user['username']}",
-                user['registration_date'],
+                user.get('workplace', ''),
+                user.get('specialty', ''),
+                user.get('education', ''),
+                user.get('nomination', ''),
+                f"@{user.get('username', '')}",
+                status_text,
+                date_field,
                 work_link
             ]
 
@@ -806,10 +905,17 @@ async def export_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode='HTML'
         )
 
+        # Count complete and incomplete registrations
+        complete_count = len([u for u in registered_users if u.get('registration_status') == 'complete'])
+        incomplete_count = len([u for u in registered_users if u.get('registration_status') == 'incomplete'])
+        
         with open(excel_filename, 'rb') as excel_file:
             await update.message.reply_document(
                 document=excel_file,
-                caption=f"📊 Jami {len(registered_users)} ta foydalanuvchi\n\n✅ Excel formatda",
+                caption=f"📊 Jami {len(registered_users)} ta foydalanuvchi\n"
+                       f"✅ To'liq: {complete_count} ta\n"
+                       f"⏳ To'liq emas: {incomplete_count} ta\n\n"
+                       f"📋 Excel formatda",
                 filename=excel_filename
             )
 
