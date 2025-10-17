@@ -10,6 +10,7 @@ from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQu
     ConversationHandler
 import openpyxl
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+from db_functions import save_user_data, get_user_by_id, get_all_users, get_incomplete_users, update_user_status, save_partial_user_data, get_database_stats, delete_user
 
 # Bot konfiguratsiyasi
 BOT_TOKEN = os.getenv('BOT_TOKEN', '7558518169:AAHNv3OfiVeIZMO6QHlbNlOXX09MeUskqzM')
@@ -20,10 +21,8 @@ GROUP_ID = os.getenv('GROUP_ID', '-1002930763309')
 (START_MENU, FULLNAME, COUNTRY, CITY, BIRTHDATE, PHONE, WORKPLACE,
  SPECIALTY, EDUCATION, NOMINATION, CREATIVE_WORK) = range(11)
 
-# Ma'lumotlar fayli
-DATA_FILE = 'registered_users.json'
-
-# Global ma'lumotlar
+# Database will be used instead of JSON file
+# Global variable for backward compatibility
 registered_users = []
 
 # Ma'lumot darajalari
@@ -45,20 +44,19 @@ NOMINATIONS = [
 
 
 def load_data():
+    """Load data from database - for backward compatibility"""
     global registered_users
     try:
-        if os.path.exists(DATA_FILE):
-            with open(DATA_FILE, 'r', encoding='utf-8') as f:
-                registered_users = json.load(f)
+        registered_users = get_all_users()
         print(f"📂 Ma'lumotlar yuklandi: {len(registered_users)} foydalanuvchi")
     except Exception as e:
         print(f"❌ Xato: {e}")
 
 
 def save_data():
+    """Save data to database - for backward compatibility"""
     try:
-        with open(DATA_FILE, 'w', encoding='utf-8') as f:
-            json.dump(registered_users, f, ensure_ascii=False, indent=2)
+        # Data is automatically saved to database in individual functions
         print(f"💾 Ma'lumotlar saqlandi: {len(registered_users)} foydalanuvchi")
     except Exception as e:
         print(f"❌ Saqlash xatosi: {e}")
@@ -67,43 +65,9 @@ def save_data():
 def save_partial_user_data(user_id, context_data, step_name):
     """Save user data at each step, even if registration is incomplete"""
     try:
-        # Check if user already exists in partial data
-        existing_user = None
-        for i, user in enumerate(registered_users):
-            if user.get('user_id') == user_id:
-                existing_user = i
-                break
-        
-        # Create or update user data
-        user_info = {
-            'user_id': user_id,
-            'username': context_data.get('username', "Username yo'q"),
-            'first_name': context_data.get('first_name', ""),
-            'last_name': context_data.get('last_name', ""),
-            'language_code': context_data.get('language_code', ""),
-            'last_updated': datetime.now().strftime('%d.%m.%Y %H:%M:%S'),
-            'registration_status': 'incomplete',  # Will be overridden if user is complete
-            'current_step': step_name
-        }
-        
-        # Preserve existing registration status if user is already complete
-        if existing_user is not None and registered_users[existing_user].get('registration_status') == 'complete':
-            user_info['registration_status'] = 'complete'
-            user_info['completion_date'] = registered_users[existing_user].get('completion_date', '')
-        
-        # Add all available data from context
-        for key, value in context_data.items():
-            if key not in ['user_id', 'username', 'first_name', 'last_name', 'language_code']:
-                user_info[key] = value
-        
-        if existing_user is not None:
-            # Update existing user
-            registered_users[existing_user] = user_info
-        else:
-            # Add new user
-            registered_users.append(user_info)
-        
-        save_data()
+        # Use database function for saving partial data
+        from db_functions import save_partial_user_data as db_save_partial
+        db_save_partial(user_id, context_data, step_name)
         print(f"Partial data saved for user {user_id} at step: {step_name}")
     except Exception as e:
         print(f"❌ Error saving partial data: {e}")
@@ -112,7 +76,7 @@ def save_partial_user_data(user_id, context_data, step_name):
 async def send_reminder_to_incomplete_users():
     """Send reminder messages to users with incomplete registrations"""
     try:
-        incomplete_users = [u for u in registered_users if u.get('registration_status') == 'incomplete']
+        incomplete_users = get_incomplete_users()
         
         if not incomplete_users:
             print("No incomplete registrations to remind")
@@ -583,9 +547,7 @@ async def creative_work(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     context.user_data['file'] = file_info
 
-    # Remove any existing partial data for this user
-    registered_users[:] = [u for u in registered_users if u.get('user_id') != user.id]
-
+    # Prepare user data for database
     user_info = {
         'user_id': user.id,
         'username': user.username or "Username yo'q",
@@ -598,8 +560,8 @@ async def creative_work(update: Update, context: ContextTypes.DEFAULT_TYPE):
     }
     user_info.update(context.user_data)
 
-    registered_users.append(user_info)
-    save_data()
+    # Save to database
+    save_user_data(user.id, user_info, 'complete')
 
     await update.message.reply_text(
         "✅ Ro'yxatdan muvaffaqiyatli o'tdingiz!\n\n"
@@ -848,8 +810,8 @@ async def export_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"❌ Sizda ruxsat yo'q!")
         return
 
-    # Reload data from file to get latest users
-    load_data()
+    # Get latest data from database
+    registered_users = get_all_users()
     print(f"Ro'yxatdan o'tganlar soni: {len(registered_users)}")
 
     if not registered_users:
@@ -1053,9 +1015,8 @@ async def reminder_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     try:
-        # Reload data from file to get latest users
-        load_data()
-        incomplete_users = [u for u in registered_users if u.get('registration_status') == 'incomplete']
+        # Get latest incomplete users from database
+        incomplete_users = get_incomplete_users()
         
         if not incomplete_users:
             await update.message.reply_text("📊 To'liq bo'lmagan ro'yxatdan o'tishlar yo'q.")
@@ -1313,22 +1274,18 @@ async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"❌ Sizda ruxsat yo'q!")
         return
     
-    # Reload data to get latest statistics
-    load_data()
-    
-    complete = len([u for u in registered_users if u.get('registration_status') == 'complete'])
-    incomplete = len([u for u in registered_users if u.get('registration_status') == 'incomplete'])
-    old_format = len([u for u in registered_users if 'registration_status' not in u])
+    # Get statistics from database
+    stats = get_database_stats()
     
     stats_text = f"""
 📊 <b>Database Statistics</b>
 
-👥 Total Users: {len(registered_users)}
-✅ Complete: {complete}
-⏳ Incomplete: {incomplete}
-🔄 Old Format: {old_format}
+👥 Total Users: {stats['total']}
+✅ Complete: {stats['complete']}
+⏳ Incomplete: {stats['incomplete']}
+🔄 Old Format: {stats['old_format']}
 
-📁 Database: {DATA_FILE}
+📁 Database: SQLite (bot_database.db)
 🕒 Last Updated: {datetime.now().strftime('%d.%m.%Y %H:%M:%S')}
     """
     
@@ -1340,9 +1297,6 @@ async def userid_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
     if user_id != ADMIN_CHAT_ID:
         return  # Silently ignore for non-admins
-    
-    # Reload data to get latest users
-    load_data()
     
     # Extract ID from command text (e.g., /123456789 -> 123456789)
     command_text = update.message.text.strip()
@@ -1364,45 +1318,40 @@ async def userid_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not search_id.isdigit():
             return  # Not a valid ID command, ignore
     
-    # Search for user
-    found_users = [u for u in registered_users if str(u.get('user_id')) == search_id]
+    # Search for user in database
+    user_data = get_user_by_id(int(search_id))
     
-    if not found_users:
+    if not user_data:
         await update.message.reply_text(f"❌ Telegram ID {search_id} topilmadi.")
         return
     
-    # Show user info (take the most recent registration)
-    user = found_users[-1]  # Most recent
-    
-    work_link = user.get('message_link', "Link yo'q")
-    username = user.get('username', '')
+    # Show user info
+    work_link = user_data.get('message_link', "Link yo'q")
+    username = user_data.get('username', '')
     if not username:
         username = "yo'q"
     
     text = (
         f"👤 <b>Foydalanuvchi ma'lumotlari</b>\n\n"
-        f"🆔 <b>Telegram ID:</b> <code>{user.get('user_id', '')}</code>\n"
-        f"👤 <b>F.I.Sh:</b> {user.get('fullname', '')}\n"
-        f"🌍 <b>Davlat:</b> {user.get('country', '')}\n"
-        f"🏙️ <b>Shahar/Tuman:</b> {user.get('city', '')}\n"
-        f"🎂 <b>Tug'ilgan sana:</b> {user.get('birthdate', '')}\n"
-        f"📱 <b>Telefon:</b> {user.get('phone', '')}\n"
+        f"🆔 <b>Telegram ID:</b> <code>{user_data.get('user_id', '')}</code>\n"
+        f"👤 <b>F.I.Sh:</b> {user_data.get('fullname', '')}\n"
+        f"🌍 <b>Davlat:</b> {user_data.get('country', '')}\n"
+        f"🏙️ <b>Shahar/Tuman:</b> {user_data.get('city', '')}\n"
+        f"🎂 <b>Tug'ilgan sana:</b> {user_data.get('birthdate', '')}\n"
+        f"📱 <b>Telefon:</b> {user_data.get('phone', '')}\n"
         f"📞 <b>Telegram:</b> @{username}\n"
-        f"🏢 <b>Ish joyi:</b> {user.get('workplace', '')}\n"
-        f"💼 <b>Mutaxassislik:</b> {user.get('specialty', '')}\n"
-        f"🎓 <b>Ma'lumot:</b> {user.get('education', '')}\n"
-        f"🏆 <b>Nominatsiya:</b> {user.get('nomination', '')}\n"
-        f"⏰ <b>Ro'yxatdan o'tgan vaqt:</b> {user.get('registration_date', '')}\n"
+        f"🏢 <b>Ish joyi:</b> {user_data.get('workplace', '')}\n"
+        f"💼 <b>Mutaxassislik:</b> {user_data.get('specialty', '')}\n"
+        f"🎓 <b>Ma'lumot:</b> {user_data.get('education', '')}\n"
+        f"🏆 <b>Nominatsiya:</b> {user_data.get('nomination', '')}\n"
+        f"⏰ <b>Ro'yxatdan o'tgan vaqt:</b> {user_data.get('registration_date', '')}\n"
         f"📎 <b>Ijodiy ish:</b> {work_link}"
     )
-    
-    if len(found_users) > 1:
-        text += f"\n\n⚠️ <i>Bu foydalanuvchi {len(found_users)} marta ro'yxatdan o'tgan</i>"
     
     await update.message.reply_text(text, parse_mode='HTML')
     
     # Send the user's creative work file if it exists
-    file_info = user.get('file')
+    file_info = user_data.get('file')
     if file_info and file_info.get('file_id'):
         try:
             await update.message.chat.send_action(action="upload_document")
